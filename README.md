@@ -1,6 +1,6 @@
 # FlowDisco
 
-## First Step:
+## First Step
 
 The first step is to set the parameters to the values we deem appropriate. 
 These values are set in the CMD of the Dockerfile where each argument (numbered) 
