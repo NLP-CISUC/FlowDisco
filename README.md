@@ -1,4 +1,6 @@
-## FlowDisco
+# FlowDisco
+
+## First Step:
 
 The first step is to set the parameters to the values we deem appropriate. 
 These values are set in the CMD of the Dockerfile where each argument (numbered) 
@@ -18,12 +20,14 @@ contains only one value (->):
 4. Number of clusters manually entered (--nClusters):
     -> integer value (15 - default value).
 
+## Start the service - commands
 
 To start the service locally, we have to use two commands:
 1. docker compose build
 2. docker run -v FolderWhereThePlatformIsStored:/mnt/mydata platform-uplink
 In my example it is: docker run -v C:/Users/patricia/platform/:/mnt/mydata platform-uplink 
 
+## Generate the PDF Markov flow
 
 After running the code, we see that the .dot file has been added to the project folder;
 To generate the PDF Markov flow:
