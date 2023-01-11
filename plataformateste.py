@@ -745,7 +745,7 @@ def main():
 
     #Colocado de forma manual porque 2 clusters era pouco
     if "--nClusters" in dictionary.keys():
-      nClusters = 15
+      nClusters = nClusters = int(dictionary.get('--nClusters'))
 
     #K-Means
     y_predicted, centers = ClusteringKMeans(vectors, nClusters)
