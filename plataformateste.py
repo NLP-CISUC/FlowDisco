@@ -68,10 +68,18 @@ from io import StringIO
 #from kneed import KneeLocator
 #import cleantext
 import re
+import spacy.cli
+import getopt
+import click
 
+spacy.cli.download("en_core_web_sm")
+spacy.cli.download("en_core_web_md")
+spacy.cli.download("en_core_web_lg")
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
+
+FOLDER = "." # "/mnt/mydata"
 
 # ---------------------------------------------------------------
 
@@ -492,7 +500,7 @@ def generateMarkovChain(nClusters, matrix):
   #remove edges below threshold
   threshold = 0.2
   G.remove_edges_from([(n1, n2) for n1, n2, w in G.edges(data="weight") if w < threshold])
-  nx.drawing.nx_pydot.write_dot(G, '/mnt/mydata/markov' + '.dot')
+  # nx.drawing.nx_pydot.write_dot(G, f'{FOLDER}/markov.dot')
 
 def silhouetteMethod(vectors, minK, maxK, incr):
   data = vectors
@@ -671,33 +679,10 @@ def describeClustersClosest(nClusters, normalizedDF, y_predicted, vectors, cente
   print("Cluster Describe Closest Document:")
   return df_labels
 
-import getopt
 
 # MAIN FUNCTION
-def main():
-    argv = sys.argv[1:]
-    print(argv[0])
-    
-    optionsPeq = "m:r:c:p:l:"
-    options = ["package=", "representation=", "nClusters=", "labelsType="]
-
-    dictionary = {}
-
-    try:
-
-      # Parsing argument
-      arguments, values = getopt.getopt(argv, optionsPeq, options)
-      dictionary = dict(arguments)
-
-    except getopt.error as err:
-      # output error, and return with an error code
-      print (str(err))
-   
-    # GLOBAL VARIABLES
-    if "--package" in dictionary.keys():
-      nlp = spacy.load(dictionary['--package'])
-    else:
-      nlp = spacy.load("en_core_web_md")
+def main(package, representation, labels_type, n_clusters):
+    nlp = spacy.load(package)
     stopwordseng = nltk.corpus.stopwords.words('english')
 
     # Models of SentenceTransformer choosed by results here: 'https://www.sbert.net/docs/pretrained_models.html'
@@ -705,15 +690,8 @@ def main():
     #distilroberta = SentenceTransformer('all-distilroberta-v1')
     #miniLM12 = SentenceTransformer('all-MiniLM-L12-v2')
     miniLM6 = SentenceTransformer('all-MiniLM-L6-v2')
-
-
-    csvFileInput = '/mnt/mydata/twitter_full_dataset-pequeno.csv'
-    numberFeatures = 100
-
-    if csvFileInput == "/content/drive/MyDrive/ColabNotebooks/datasets/multiwoz_v31.csv" :
-      problem = "multi" #define if is "multi" or "single" labelled
-    else:
-      problem = "single"
+    problem = "single"
+    csvFileInput = f"{FOLDER}/twitter_full_dataset-pequeno.csv"
 
     normalizedDF = normalizeDataset(csvFileInput, regex=True, removeGreetings=False, speaker=False) #normalize turn_id, regex if true normalize URL's and Usernames started with '@', remove greeting words
     TopicFeatures = TopicFeaturesToRemove(nlp, normalizedDF, numberFeatures, TopicFeature=False) #topic features
@@ -726,15 +704,12 @@ def main():
     # Functions to transform into vectors (WORD EMBEDDING)
     model = miniLM6 # mpnetBase / distilroberta / miniLM12 / miniLM6
 
-    if "--representation" in dictionary.keys():
-      if dictionary['--representation'] == 'tfidf':
-        vectors = PreProcessingTFIDF(stopwordseng,normalizedDF, TopicFeatures, 0.8, 3)
-      elif dictionary['--representation'] == 'sentenceTransformer':
-        vectors = useSentenceTransformer(normalizedDF, model)
-      elif dictionary['--representation'] == 'word2vec':
-        vectors = word2vec(normalizedDF) 
-      else:
-        vectors = useSentenceTransformer(normalizedDF, model)
+    if representation == 'tfidf':
+      vectors = PreProcessingTFIDF(stopwordseng,normalizedDF, TopicFeatures, 0.8, 3)
+    elif representation == 'word2vec':
+      vectors = word2vec(normalizedDF) 
+    else:
+      vectors = useSentenceTransformer(normalizedDF, model)
 
     #K-Means
     if 'trueLabel' in normalizedDF.columns:  #supervised way, if there the column with labels
@@ -742,10 +717,10 @@ def main():
     else:
       nClusters = silhouetteMethod(vectors, 2, 14, 1) #unsupervised way (vectors, minK, maxK, increment) sequence of numbers from minK to maxK, but increment
     print('O número de Clusters a usar será ' + str(nClusters) + '!!')
-
+    
     #Colocado de forma manual porque 2 clusters era pouco
-    if "--nClusters" in dictionary.keys():
-      nClusters = nClusters = int(dictionary.get('--nClusters'))
+    if n_clusters:
+      nClusters = n_clusters
 
     #K-Means
     y_predicted, centers = ClusteringKMeans(vectors, nClusters)
@@ -764,21 +739,12 @@ def main():
     closestDocuments = describeClustersClosest(nClusters, normalizedDF, y_predicted, vectors, centers)
     print(closestDocuments)
 
-    if "--labelsType" in dictionary.keys():
-      if dictionary['--labelsType'] == 'bigrams':
-        matrix = createMatrix(nClusters, bigrams, csvFileInput, y_predicted) #change first position according the way we wanna describe the clusters
-      elif dictionary['--labelsType'] == 'verbs':
-        matrix = createMatrix(nClusters, verbs, csvFileInput, y_predicted) #change first position according the way we wanna describe the clusters
-      elif dictionary['--labelsType'] == 'closestDocuments':
-        matrix = createMatrix(nClusters, closestDocuments, csvFileInput, y_predicted) #change first position according the way we wanna describe the clusters
-      else:
-        matrix = createMatrix(nClusters, bigrams, csvFileInput, y_predicted) #change first position according the way we wanna describe the clusters
+    if labels_type == 'verbs':
+      matrix = createMatrix(nClusters, verbs, csvFileInput, y_predicted) #change first position according the way we wanna describe the clusters
+    elif labels_type == 'closestDocuments':
+      matrix = createMatrix(nClusters, closestDocuments, csvFileInput, y_predicted) #change first position according the way we wanna describe the clusters
+    else:
+      matrix = createMatrix(nClusters, bigrams, csvFileInput, y_predicted) #change first position according the way we wanna describe the clusters
 
     generateMarkovChain(nClusters,matrix)
-
-
-
-if __name__ == "__main__":
-    main()
-
 
