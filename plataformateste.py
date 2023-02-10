@@ -79,7 +79,7 @@ nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
 
-FOLDER = "." # "/mnt/mydata"
+FOLDER = "/tmp" # "/mnt/mydata"
 
 # ---------------------------------------------------------------
 
@@ -108,9 +108,7 @@ def chooseNumberCluster(opt, normalizedDF):
   return nClusters
 
 # Normalize turn_id by (all turn_id's/max turn_id) and some column names
-def normalizeDataset(csvFileInput, regex=None, removeGreetings=None, speaker=None):
-  df_initial = pd.read_csv(csvFileInput, on_bad_lines='skip', sep=";")
-
+def normalizeDataset(df_initial, regex=None, removeGreetings=None, speaker=None):
   url_pattern = r'https?://\S+'
   url_placeholder = 'xURLx'
   user_tags_pattern = '^@\S+'
@@ -450,8 +448,7 @@ def transition_matrix(nClusters, transitions): #transitions is for y_predicted
             row[:] = [f/s for f in row]
     return M
 
-def createMatrix(nClusters, clusLabelled, normalizedDF, y_predicted): #return of matrix
-  df_initial = normalizedDF
+def createMatrix(nClusters, clusLabelled, y_predicted): #return of matrix
   df_probs = pd.DataFrame() 
   df_probs['predicted'] = y_predicted
 
@@ -500,7 +497,7 @@ def generateMarkovChain(nClusters, matrix):
   #remove edges below threshold
   threshold = 0.2
   G.remove_edges_from([(n1, n2) for n1, n2, w in G.edges(data="weight") if w < threshold])
-  # nx.drawing.nx_pydot.write_dot(G, f'{FOLDER}/markov.dot')
+  nx.drawing.nx_pydot.write_dot(G, f'{FOLDER}/markov.dot')
 
 def silhouetteMethod(vectors, minK, maxK, incr):
   data = vectors
@@ -681,7 +678,7 @@ def describeClustersClosest(nClusters, normalizedDF, y_predicted, vectors, cente
 
 
 # MAIN FUNCTION
-def main(package, representation, labels_type, n_clusters):
+def main(df_initial, package, representation, labels_type, n_clusters = 0):
     nlp = spacy.load(package)
     stopwordseng = nltk.corpus.stopwords.words('english')
 
@@ -691,9 +688,11 @@ def main(package, representation, labels_type, n_clusters):
     #miniLM12 = SentenceTransformer('all-MiniLM-L12-v2')
     miniLM6 = SentenceTransformer('all-MiniLM-L6-v2')
     problem = "single"
-    csvFileInput = f"{FOLDER}/twitter_full_dataset-pequeno.csv"
+    numberFeatures = 100
+    
+    df = df_initial.copy()
 
-    normalizedDF = normalizeDataset(csvFileInput, regex=True, removeGreetings=False, speaker=False) #normalize turn_id, regex if true normalize URL's and Usernames started with '@', remove greeting words
+    normalizedDF = normalizeDataset(df, regex=True, removeGreetings=False, speaker=False) #normalize turn_id, regex if true normalize URL's and Usernames started with '@', remove greeting words
     TopicFeatures = TopicFeaturesToRemove(nlp, normalizedDF, numberFeatures, TopicFeature=False) #topic features
 
     #só caso exista labels 
@@ -715,12 +714,13 @@ def main(package, representation, labels_type, n_clusters):
     if 'trueLabel' in normalizedDF.columns:  #supervised way, if there the column with labels
       nClusters = chooseNumberCluster("equal", normalizedDF) #equal | total # nCluster = nDA / Int | total / max
     else:
-      nClusters = silhouetteMethod(vectors, 2, 14, 1) #unsupervised way (vectors, minK, maxK, increment) sequence of numbers from minK to maxK, but increment
+      #Colocado de forma manual porque 2 clusters era pouco
+      if n_clusters:
+        nClusters = n_clusters
+      else:
+        nClusters = silhouetteMethod(vectors, 2, 14, 1) #unsupervised way (vectors, minK, maxK, increment) sequence of numbers from minK to maxK, but increment
+
     print('O número de Clusters a usar será ' + str(nClusters) + '!!')
-    
-    #Colocado de forma manual porque 2 clusters era pouco
-    if n_clusters:
-      nClusters = n_clusters
 
     #K-Means
     y_predicted, centers = ClusteringKMeans(vectors, nClusters)
@@ -740,11 +740,11 @@ def main(package, representation, labels_type, n_clusters):
     print(closestDocuments)
 
     if labels_type == 'verbs':
-      matrix = createMatrix(nClusters, verbs, csvFileInput, y_predicted) #change first position according the way we wanna describe the clusters
+      matrix = createMatrix(nClusters, verbs, y_predicted) #change first position according the way we wanna describe the clusters
     elif labels_type == 'closestDocuments':
-      matrix = createMatrix(nClusters, closestDocuments, csvFileInput, y_predicted) #change first position according the way we wanna describe the clusters
+      matrix = createMatrix(nClusters, closestDocuments, y_predicted) #change first position according the way we wanna describe the clusters
     else:
-      matrix = createMatrix(nClusters, bigrams, csvFileInput, y_predicted) #change first position according the way we wanna describe the clusters
+      matrix = createMatrix(nClusters, bigrams, y_predicted) #change first position according the way we wanna describe the clusters
 
     generateMarkovChain(nClusters,matrix)
 
