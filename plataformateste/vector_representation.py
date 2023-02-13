@@ -127,7 +127,6 @@ def preprocessing_tfidf(stopwordseng, normalized_df, topic_features, max_df, min
     df_initial = normalized_df
 
     # turn 'utterance' column into list and all lowercase
-    df_initial["utterance"].tolist()
     df_initial["utterance"] = [
         x for x in df_initial["utterance"].map(lambda x: str(x).lower())
     ]
