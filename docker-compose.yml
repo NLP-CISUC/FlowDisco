@@ -2,9 +2,13 @@ version: "3"
 services:
   platform-uplink:
     # if something fails or the server is restarted, the container will restart
-    restart: always 
+    restart: always
     container_name: platform-uplink
     image: platform-uplink
-    build: 
+    build:
       # build the platform-uplink image from the Dockerfile in the current directory
-      context: . 
+      context: .
+    volumes:
+      - ./data:/app/data
+      - ./results:/app/results
+      - ./models:/app/models
