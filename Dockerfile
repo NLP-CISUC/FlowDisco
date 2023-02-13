@@ -1,6 +1,17 @@
 FROM python:3.9
-ADD requirements.txt /
-RUN pip install -r /requirements.txt
-ADD plataformateste.py /
-ENV PYTHONUNBUFFERED=1
-CMD [ "python", "./plataformateste.py", "--package", "en_core_web_md", "--representation", "sentenceTransformer", "--n-clusters", "15", "--labels-type", "bigrams"]
+
+ENV HOME=/app \
+    PYTHONUNBUFFERED=1
+
+WORKDIR ${HOME}
+
+ADD requirements.txt ${HOME}
+RUN pip install -r requirements.txt
+RUN python -m spacy download en_core_web_sm && \
+    python -m spacy download en_core_web_md && \
+    python -m spacy download en_core_web_lg && \
+    python -m nltk.downloader stopwords punkt averaged_perceptron_tagger
+
+COPY ./plataformateste ${HOME}/plataformateste
+
+CMD ["python", "-m", "plataformateste.main", "--data_filename", "twitter_full_dataset-pequeno.csv", "--package", "en_core_web_md", "--representation", "sentenceTransformer", "--n-clusters", "15", "--labels-type", "bigrams"]
