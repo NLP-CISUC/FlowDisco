@@ -35,8 +35,8 @@ In my example it is: docker run -v C:/Users/patricia/platform/:/mnt/mydata platf
 After running the code, we see that the .dot file has been added to the project folder;
 To generate the PDF Markov flow:
 
-1. install graphviz (pip install graphviz, e.g.)
-2. Run the command in terminal: python -m plataformateste.generate_pdf_markov markov.dot
+1. install graphviz and pygraphviz (pip install graphviz, e.g.)
+3. Run the command in terminal: python -m plataformateste.generate_pdf_markov markov.dot
 
 If we want to generate a .dot file for another type of label, we have to delete the old
 dot file from the project folder and re-run the program to generate a new PDF.
