@@ -2,46 +2,96 @@ import graphviz
 import networkx as nx
 import pandas as pd
 
+from pathlib import Path
+from graphviz import Source
+RESULTS_FOLDER = Path(__file__).parent.parent / "results"
 
 def generate_markov_chain(n_clusters: int, matrix: pd.DataFrame) -> nx.MultiDiGraph:
-    states = list(matrix.columns.values)
-    # equals transition probability matrix of changing states given a state
-    q_df = pd.DataFrame(columns=states, index=states)
-    q_df = matrix
+    G = nx.MultiDiGraph()
+    threshold = 0.2  # set the threshold value
+    for i in range(len(matrix.columns)):
+        for j in range(len(matrix.index)):
+            if matrix.iloc[j,i] > threshold:
+                G.add_edge(matrix.columns[i],matrix.index[j], weight=matrix.iloc[j,i], label=matrix.iloc[j,i], dir='back') # direção oposta
+    # Set the node colors based on their position in the graph
+    colors = []
+    for node in G.nodes():
+        if node in matrix.columns[:n_clusters]:  # nodes for user
+            colors.append('black')
+        else:  # remaining nodes are blue
+            colors.append('orange')
+    # Create a dictionary of Graphviz node attributes with the colors
+    node_attrs = {
+        node: {'color': colors[i]} for i, node in enumerate(G.nodes())
+    }
+    # Set the Graphviz graph attributes for layout and style
+    graph_attrs = {
+        'layout': 'dot',
+        #'overlap': 'false',
+        #'rankdir': 'LR'
+    }
+    # Set the rankdir attribute to 'BT' to arrange nodes from bottom to top -> to SOD be the first one and EOD the last one
+    G.graph['rankdir'] = 'BT'
+    # Create a Graphviz object from the NetworkX graph and attributes
+    gv = nx.nx_agraph.to_agraph(G)
+    gv.graph_attr.update(graph_attrs)
+    for node, attrs in node_attrs.items():
+        n = gv.get_node(node)
+        n.attr.update(attrs)
+    return G
 
-    for p in range(n_clusters):
-        q_df.loc[states[p]].reset_index = matrix.iloc[p]
+def generate_markov_chain_separately(n_clusters: int, matrix: pd.DataFrame) -> nx.MultiDiGraph:
+    n_clustersBoth = n_clusters + n_clusters
+    G = nx.MultiDiGraph()
+    threshold = 0.2  # set the threshold value
+    for i in range(len(matrix.columns)):
+        for j in range(len(matrix.index)):
+            if matrix.iloc[j,i] > threshold:
+                G.add_edge(matrix.columns[i],matrix.index[j], weight=matrix.iloc[j,i], label=matrix.iloc[j,i], dir='back') # direção oposta
+    # Set the node colors based on their position in the graph
+    colors = []
+    for node in G.nodes():
+        if node in matrix.columns[:n_clusters]:  # nodes for user
+            colors.append('red')
+        elif node in matrix.columns[n_clusters:n_clustersBoth]:  # nodes for system
+            colors.append('blue')
+        else:  # remaining nodes are blue
+            colors.append('orange')
+    # Create a dictionary of Graphviz node attributes with the colors
+    node_attrs = {
+        node: {'color': colors[i]} for i, node in enumerate(G.nodes())
+    }
+    nx.set_node_attributes(G, node_attrs)
+    G.graph['rankdir'] = 'BT'
 
-    def _get_markov_edges(q):
-        edges = {}
-        for col in q.columns:
-            for idx in q.index:
-                edges[(idx, col)] = q.loc[idx, col]
-        return edges
-
-    edges_wts = _get_markov_edges(q_df)
-    # pprint(edges_wts)
-    # create graph object
-    graph = nx.MultiDiGraph()
-
-    # nodes correspond to states
-    graph.add_nodes_from(states)
-
-    # edges represent transition probabilities
-    for k, v in edges_wts.items():
-        tmp_origin, tmp_destination = k[0], k[1]
-        graph.add_edge(tmp_origin, tmp_destination, weight=v, label=v)
-
-    # remove edges below threshold
-    threshold = 0.2
-    graph.remove_edges_from(
-        [(n1, n2) for n1, n2, w in graph.edges(data="weight") if w < threshold]
-    )
-    return graph
+    # Set the Graphviz graph attributes for layout and style
+    #graph_attrs = {
+        #'layout': 'dot',
+    #}
 
 
+    # Set the rankdir attribute to 'BT' to arrange nodes from bottom to top -> to SOD be the first one and EOD the last one
+    #G.graph['rankdir'] = 'BT'
+
+    # Create a Graphviz object from the NetworkX graph and attributes
+    #gv = nx.nx_agraph.to_agraph(G)
+    #gv.graph_attr.update(graph_attrs)
+    #for node, attrs in node_attrs.items():
+        #n = gv.get_node(node)
+        #n.attr.update(attrs)
+
+    # Write the Graphviz object to a .dot file
+    #gv.layout('dot')
+    #gv.draw('markov_model.png')
+    #gv.write('markov_model.dot')
+
+    #gv é do tipo agraph (objeto de G) quando é feito o print de gv mostra as cores e a direção correta, mas não se conseguiu guardar o gv em dot
+
+    return G
+
+#nx.drawing.nx_agraph.write_dot(G, "graph.dot", graph_attr={"rankdir": "LR"} rankdir BT => Bottom -> Top (aplicar este terceito argumento e consegue-se colocar a direção do grafo ))
 def save(graph: nx.MultiDiGraph, filename: str) -> None:
-    nx.drawing.nx_pydot.write_dot(graph, filename)
+    nx.drawing.nx_pydot.write_dot(graph, filename) 
 
 
 def show_file(filename: str) -> None:

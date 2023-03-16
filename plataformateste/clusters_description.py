@@ -3,7 +3,6 @@ import pandas as pd
 from sklearn import metrics
 from sklearn.feature_extraction.text import CountVectorizer
 
-
 def describe_clusters_bigrams(n_clusters, normalized_df, y_predicted):
     df_teste = pd.DataFrame()  # utterance and y_predicted
     df_teste["predicted"] = y_predicted
