@@ -1,6 +1,6 @@
 # FlowDisco
 
-The dataset needs to have initially a turn_id and a speaker for each utterance. 
+The dataset needs to have initially a turn_id and a speaker (only if we want to split between user and system) for each utterance. 
 
 ## First Step
 
