@@ -1,5 +1,7 @@
 # FlowDisco
 
+The dataset needs to have initially a turn_id and a speaker for each utterance. 
+
 ## First Step
 
 The first step is to set the parameters to the values we deem appropriate.
