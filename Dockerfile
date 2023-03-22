@@ -7,10 +7,7 @@ WORKDIR ${HOME}
 
 ADD requirements.txt ${HOME}
 RUN pip install -r requirements.txt
-RUN python -m spacy download en_core_web_sm && \
-    python -m spacy download en_core_web_md && \
-    python -m spacy download en_core_web_lg && \
-    python -m nltk.downloader stopwords punkt averaged_perceptron_tagger
+RUN python -m nltk.downloader stopwords punkt averaged_perceptron_tagger
 
 COPY ./plataformateste ${HOME}/plataformateste
 
