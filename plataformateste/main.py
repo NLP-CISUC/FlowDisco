@@ -14,7 +14,7 @@ MODEL_CACHE_FOLDER = Path(__file__).parent.parent / "models"
 
 
 @click.command()
-@click.option("--data_filename")
+@click.option("--data-filename")
 @click.option("--package", default="en_core_web_md")
 @click.option("--representation", default="sentenceTransformer")
 @click.option("--labels-type", default="bigrams")
@@ -24,12 +24,12 @@ def main(
     package: str,
     representation: str,
     labels_type: str,
-    n_clusters: int
+    n_clusters: int,
 ):
     save_file_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     df = pd.read_csv(DATA_FOLDER / data_filename, on_bad_lines="skip", sep=";")
- 
+
     graph = run_test(
         df, package, representation, labels_type, n_clusters, MODEL_CACHE_FOLDER
     )
@@ -43,7 +43,7 @@ def main(
                 "package": package,
                 "representation": representation,
                 "labels_type": labels_type,
-                "n_clusters": n_clusters
+                "n_clusters": n_clusters,
             },
             f,
         )

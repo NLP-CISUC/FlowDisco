@@ -14,4 +14,4 @@ RUN python -m spacy download en_core_web_sm && \
 
 COPY ./plataformateste ${HOME}/plataformateste
 
-CMD ["python", "-m", "plataformateste.main", "--data_filename", "twitter_full_dataset-pequeno.csv", "--package", "en_core_web_md", "--representation", "sentenceTransformer", "--n-clusters", "15", "--labels-type", "bigrams"]
+CMD ["python", "-m", "plataformateste.main", "--data-filename", "twitter_full_dataset-pequeno.csv", "--package", "en_core_web_md", "--representation", "sentenceTransformer", "--n-clusters", "15", "--labels-type", "bigrams"]
