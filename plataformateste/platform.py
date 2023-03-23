@@ -520,15 +520,15 @@ def run_test(
         print("Columns df_final", df_final.columns)
         normalized_df.sort_values(by=["sequence"], inplace=True)
         df_final.sort_values(by=["sequence"], inplace=True)
-
-        for initial_cluster_id in normalized_df.groupby("dialogue_id").first()[
+  
+        for initial_cluster_id in df_final.groupby("dialogue_id").first()[
             "cluster"
         ]:
             occurrence_matrix[n_clusters, initial_cluster_id] = (
                 occurrence_matrix[n_clusters, initial_cluster_id] + 1
             )
 
-        for final_cluster_id in normalized_df.groupby("dialogue_id").last()["cluster"]:
+        for final_cluster_id in df_final.groupby("dialogue_id").last()["cluster"]:
             occurrence_matrix[final_cluster_id, n_clusters + 1] = (
                 occurrence_matrix[final_cluster_id, n_clusters + 1] + 1
             )
@@ -672,14 +672,14 @@ def run_test(
         print("DF_FINAL", df_final.columns)
         df_final.sort_values(by=["sequence"], inplace=True)
 
-        for initial_cluster_id in normalized_df.groupby("dialogue_id").first()[
+        for initial_cluster_id in df_final.groupby("dialogue_id").first()[
             "cluster"
         ]:
             occurrence_matrix[n_clusters, initial_cluster_id] = (
                 occurrence_matrix[n_clusters, initial_cluster_id] + 1
             )
 
-        for final_cluster_id in normalized_df.groupby("dialogue_id").last()["cluster"]:
+        for final_cluster_id in df_final.groupby("dialogue_id").last()["cluster"]:
             occurrence_matrix[final_cluster_id, n_clusters + 1] = (
                 occurrence_matrix[final_cluster_id, n_clusters + 1] + 1
             )
