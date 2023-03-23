@@ -520,31 +520,17 @@ def run_test(
         print("Columns df_final", df_final.columns)
         normalized_df.sort_values(by=["sequence"], inplace=True)
         df_final.sort_values(by=["sequence"], inplace=True)
-        for i in range(normalized_df["dialogue_id"].iat[-1] + 1):
-            turno_anterior = 0
-            fim_dialogo = -1
-            inicio_dialogo = df_final["cluster"].loc[
-                (df_final.dialogue_id == i) & (df_final.turn_id == 0)
-            ]
-            occurrence_matrix[n_clusters, inicio_dialogo] = (
-                occurrence_matrix[n_clusters, inicio_dialogo] + 1
-            )
-        for turno in df_final["turn_id"].loc[
-            (df_final.dialogue_id == i) & (df_final.turn_id != 0)
+
+        for initial_cluster_id in normalized_df.groupby("dialogue_id").first()[
+            "cluster"
         ]:
-            dialogo = df_final["cluster"].loc[
-                (df_final.dialogue_id == i) & (df_final.turn_id == turno)
-            ]
-            dialogo_anterior = df_final["cluster"].loc[
-                (df_final.dialogue_id == i) & (df_final.turn_id == turno_anterior)
-            ]
-            occurrence_matrix[dialogo_anterior, dialogo] = (
-                occurrence_matrix[dialogo_anterior, dialogo] + 1
+            occurrence_matrix[n_clusters, initial_cluster_id] = (
+                occurrence_matrix[n_clusters, initial_cluster_id] + 1
             )
-            turno_anterior = turno
-            fim_dialogo = dialogo
-            occurrence_matrix[fim_dialogo, n_clusters + 1] = (
-                occurrence_matrix[fim_dialogo, n_clusters + 1] + 1
+
+        for final_cluster_id in normalized_df.groupby("dialogue_id").last()["cluster"]:
+            occurrence_matrix[final_cluster_id, n_clusters + 1] = (
+                occurrence_matrix[final_cluster_id, n_clusters + 1] + 1
             )
 
         # Find the sum of each row
@@ -685,31 +671,17 @@ def run_test(
         # CRIAR MATRIZ DE OCORRÊNCIAS
         print("DF_FINAL", df_final.columns)
         df_final.sort_values(by=["sequence"], inplace=True)
-        for i in range(df_final["dialogue_id"].iat[-1] + 1):
-            turno_anterior = 0
-            fim_dialogo = -1
-            inicio_dialogo = df_final["cluster"].loc[
-                (df_final.dialogue_id == i) & (df_final.turn_id == 0)
-            ]
-            occurrence_matrix[nClustersBoth, inicio_dialogo] = (
-                occurrence_matrix[nClustersBoth, inicio_dialogo] + 1
-            )
-        for turno in df_final["turn_id"].loc[
-            (df_final.dialogue_id == i) & (df_final.turn_id != 0)
+
+        for initial_cluster_id in normalized_df.groupby("dialogue_id").first()[
+            "cluster"
         ]:
-            dialogo = df_final["cluster"].loc[
-                (df_final.dialogue_id == i) & (df_final.turn_id == turno)
-            ]
-            dialogo_anterior = df_final["cluster"].loc[
-                (df_final.dialogue_id == i) & (df_final.turn_id == turno_anterior)
-            ]
-            occurrence_matrix[dialogo_anterior, dialogo] = (
-                occurrence_matrix[dialogo_anterior, dialogo] + 1
+            occurrence_matrix[n_clusters, initial_cluster_id] = (
+                occurrence_matrix[n_clusters, initial_cluster_id] + 1
             )
-            turno_anterior = turno
-            fim_dialogo = dialogo
-            occurrence_matrix[fim_dialogo, nClustersBoth + 1] = (
-                occurrence_matrix[fim_dialogo, nClustersBoth + 1] + 1
+
+        for final_cluster_id in normalized_df.groupby("dialogue_id").last()["cluster"]:
+            occurrence_matrix[final_cluster_id, n_clusters + 1] = (
+                occurrence_matrix[final_cluster_id, n_clusters + 1] + 1
             )
 
         # Find the sum of each row
