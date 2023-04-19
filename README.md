@@ -1,6 +1,8 @@
 # FlowDisco
 
-The dataset needs to have initially a turn_id and a speaker (only if we want to split between user and system) for each utterance. 
+The dataset needs to have initially a dialogue_id, turn_id, utterance and a speaker (only if we want to split between user and system) for each utterance. 
+
+Put both when there is no separation of user and system and both_separetely when this separation is made (default = both_separately).
 
 ## First Step
 
@@ -19,26 +21,22 @@ contains only one value:
 3. label type (--labelsType):
     + bigrams (default value);
     + verbs;
-    + closestDocuments.
 4. Number of clusters manually entered (--nClusters):
-    + integer value (15 - default value).
+    + integer value.
 
 ## Start the service - commands
 
 To start the service locally, we have to use two commands:
 
-1. docker compose build
-2. docker run -v FolderWhereThePlatformIsStored:/mnt/mydata platform-uplink
+1. docker compose build platform-uplink
+2. docker compose run platform-uplink
 
 In my example it is: docker run -v C:/Users/patricia/platform/:/mnt/mydata platform-uplink
 
 ## Generate the PDF Markov flow
 
-After running the code, we see that the .dot file has been added to the project folder;
+After running the code, we see that the .dot file has been added to the 'results' folder ;
 To generate the PDF Markov flow:
 
-1. install graphviz and pygraphviz (pip install graphviz, e.g.)
-3. Run the command in terminal: python -m plataformateste.generate_pdf_markov markov.dot
-
-If we want to generate a .dot file for another type of label, we have to delete the old
-dot file from the project folder and re-run the program to generate a new PDF.
+1. Install graphviz and pygraphviz (pip install graphviz, e.g.) - only once
+2. Run the command in terminal: python -m plataformateste.generate_pdf_markov results/FILE_NAME.dot
