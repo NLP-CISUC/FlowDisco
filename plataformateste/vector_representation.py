@@ -111,16 +111,20 @@ def use_sentence_transformer(normalized_df, model):
 
     return vectors
 
+def word2vec(nlp, normalized_df):
+  df_initial = normalized_df
 
-def word2vec(nlp, df: pd.DataFrame):
-    """To convert word to vectors."""
-    x = [d.vector for t in df["utterance"] for d in nlp(str(t))]
-    vectors = np.array(x)
-
-    print(vectors.shape)
-    print("--> word2vec used with success!")
-    return vectors
-
+  sentences = df_initial['utterance'].tolist()
+  vectors = []
+  for utterance in sentences:
+        doc = nlp(utterance)
+        vector = doc.vector
+        vectors.append(vector)
+  vectors = pd.DataFrame(vectors)
+  print(vectors.shape)
+  print("--> word2vec used with success!")
+  
+  return pd.DataFrame(vectors)
 
 def preprocessing_tfidf(stopwordseng, normalized_df, topic_features, max_df, min_df):
     """To use TDF-IDF."""
