@@ -43,6 +43,7 @@ def describe_clusters_bigrams(n_clusters, normalized_df, y_predicted):
 
     df_labels = pd.concat([df1, df2], axis=1)
     print("Cluster Describe Bigrams")
+    print(df_labels)
 
     return df_labels
 
@@ -103,7 +104,7 @@ def describe_clusters_verbs(nlp, n_clusters, normalized_df, y_predicted):
     df_labels = pd.concat([df1, df2], axis=1)
 
     print("Cluster Describe Verbs")
-
+    print(df_labels)
     return df_labels
 	
 def describe_clusters_closest(normalized_df, y_predicted, vectors, centers, n_clusters):
@@ -143,6 +144,7 @@ def describe_clusters_closest(normalized_df, y_predicted, vectors, centers, n_cl
     df_labels = pd.concat([df1, df2], axis=1)
     
     print("Cluster Describe Closest Document")
+    print(df_labels)
     return df_labels
 
 #def describe_clusters_closest(normalized_df, y_predicted, vectors, centers, n_clusters):
