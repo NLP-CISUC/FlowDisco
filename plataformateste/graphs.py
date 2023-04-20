@@ -28,7 +28,7 @@ def generate_markov_chain(n_clusters: int, matrix: pd.DataFrame) -> nx.MultiDiGr
     nx.set_node_attributes(G, node_attrs)
 
     # Set the rankdir attribute to 'BT' to arrange nodes from bottom to top -> to SOD be the first one and EOD the last one
-    G.graph['rankdir'] = 'TB'
+    G.graph['graph'] = {'rankdir': 'BT'}
 
     # Create a Graphviz object from the NetworkX graph and attributes
     #gv = nx.nx_agraph.to_agraph(G)
