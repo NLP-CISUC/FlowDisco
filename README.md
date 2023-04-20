@@ -31,8 +31,6 @@ To start the service locally, we have to use two commands:
 1. docker compose build platform-uplink
 2. docker compose run platform-uplink
 
-In my example it is: docker run -v C:/Users/patricia/platform/:/mnt/mydata platform-uplink
-
 ## Generate the PDF Markov flow
 
 After running the code, we see that the .dot file has been added to the 'results' folder ;
