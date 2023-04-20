@@ -18,7 +18,7 @@ MODEL_CACHE_FOLDER = Path(__file__).parent.parent / "models"
 @click.option("--package", default="en_core_web_md")
 @click.option("--representation", default="sentenceTransformer")
 @click.option("--labels-type", default="bigrams")
-@click.option("--n-clusters", type=int, default=15)
+@click.option("--n-clusters", type=int)
 def main(
     data_filename: str,
     package: str,
@@ -34,7 +34,7 @@ def main(
         df, package, representation, labels_type, n_clusters, MODEL_CACHE_FOLDER
     )
 
-    graphs.save(graph, RESULTS_FOLDER / f"{save_file_id}_markov.dot")
+    graphs.save(graph, RESULTS_FOLDER / f"{save_file_id}_{representation}_{labels_type}.dot")
 
     with open(RESULTS_FOLDER / f"{save_file_id}_config.json", "w") as f:
         json.dump(
@@ -45,7 +45,7 @@ def main(
                 "labels_type": labels_type,
                 "n_clusters": n_clusters
             },
-            f,
+            f
         )
 
 
