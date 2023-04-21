@@ -1,24 +1,26 @@
+import re
+import string
+
 import matplotlib.pyplot as plt
 import nltk
 import numpy as np
 import pandas as pd
-import spacy
-import re
-import string
 from sentence_transformers import SentenceTransformer
 from sklearn import metrics
 from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
-from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import MultiLabelBinarizer, StandardScaler
+from spacy_download import load_spacy
+
 from plataformateste.clustering import clustering_kmeans
-from plataformateste.vector_representation import use_sentence_transformer
-from plataformateste.clusters_description import describe_clusters_bigrams
 from plataformateste.clusters_description import (
     describe_clusters_bigrams,
     describe_clusters_closest,
     describe_clusters_verbs,
 )
-from plataformateste.graphs import generate_markov_chain, generate_markov_chain_separately
+from plataformateste.graphs import (
+    generate_markov_chain,
+    generate_markov_chain_separately,
+)
 from plataformateste.vector_representation import (
     preprocessing_tfidf,
     topic_features_to_remove,
@@ -30,13 +32,14 @@ PROBLEM = "multi"
 NUMBER_OF_FEATURES = 100
 CLUSTER_OPT = "equal"
 
-#Model for English
+# Model for English
 # Models of SentenceTransformer choosed by results here: 'https://www.sbert.net/docs/pretrained_models.html'
 # options: 'all-MiniLM-L6-v2', 'all-mpnet-base-v2', 'all-distilroberta-v1', 'all-MiniLM-L12-v2'
 MODEL_NAME = "all-MiniLM-L6-v2"
 
-#Model for Portuguese
+# Model for Portuguese
 # MODEL_NAME = "rufimelo/bert-large-portuguese-cased-sts"
+
 
 def choose_number_of_clusters(normalized_df, opt=CLUSTER_OPT):
     column = normalized_df["trueLabel"].value_counts()
@@ -57,6 +60,7 @@ def choose_number_of_clusters(normalized_df, opt=CLUSTER_OPT):
         raise ValueError
 
     return n_clusters
+
 
 def normalize_dataset(df_initial, regex=None, removeGreetings=None, speaker=None):
     """Normalize turn_id by (all turn_id's/max turn_id) and some column names."""
@@ -100,11 +104,11 @@ def normalize_dataset(df_initial, regex=None, removeGreetings=None, speaker=None
     if "trueLabel" in df.columns:
         df["trueLabel"] = df["trueLabel"].replace(" ", "_", regex=True)
 
-    if 'trueLabel' in df.columns:
-        df['utterance']= df['utterance'].apply(lambda x: x.lower())
+    if "trueLabel" in df.columns:
+        df["utterance"] = df["utterance"].apply(lambda x: x.lower())
 
-    if 'trueLabel' in df.columns:
-        df.trueLabel = df.trueLabel.fillna('none')
+    if "trueLabel" in df.columns:
+        df.trueLabel = df.trueLabel.fillna("none")
 
     if regex is True:
         df["utterance"] = df["utterance"].replace(
@@ -115,38 +119,39 @@ def normalize_dataset(df_initial, regex=None, removeGreetings=None, speaker=None
         )
 
     greetings_stopwords = ["hello", "hi", "bye", "goodbye", "hey"]
-   
+
     if speaker == "both":
         df = df
 
-    if 'Speaker' in df.columns:
-        df['Speaker'] = df['Speaker'].replace('USR', 'USER')
-        df['Speaker'] = df['Speaker'].replace('SERVICE', 'SYSTEM')
-        df['Speaker'] = df['Speaker'].replace('SYS', 'SYSTEM')        
+    if "Speaker" in df.columns:
+        df["Speaker"] = df["Speaker"].replace("USR", "USER")
+        df["Speaker"] = df["Speaker"].replace("SERVICE", "SYSTEM")
+        df["Speaker"] = df["Speaker"].replace("SYS", "SYSTEM")
 
-    df['Speaker'] = df['Speaker'].str.strip()
+    df["Speaker"] = df["Speaker"].str.strip()
 
-     #create dialogue_id based on turn_id
-    if 'dialogue_id' not in df.columns and 'turn_id' in df.columns: 
+    # create dialogue_id based on turn_id
+    if "dialogue_id" not in df.columns and "turn_id" in df.columns:
         dialog = 0
         result = []
         i_anterior = -1
-        for i in df['turn_id']:
+        for i in df["turn_id"]:
             if i_anterior == -1 or i > i_anterior:
                 i_anterior = i
             else:
                 dialog = dialog + 1
                 i_anterior = -1
             result.append(dialog)
-        df['dialogue_id'] = result
+        df["dialogue_id"] = result
 
-    if 'turn_id' not in df.columns and 'dialogue_id' in df.columns:
-        df['turn_id'] = df.groupby('dialogue_id').cumcount()
+    if "turn_id" not in df.columns and "dialogue_id" in df.columns:
+        df["turn_id"] = df.groupby("dialogue_id").cumcount()
 
-    #create variable which is a incremental sequence by number of utterances
-    df['sequence'] = [i for i in range(len(df))]
+    # create variable which is a incremental sequence by number of utterances
+    df["sequence"] = [i for i in range(len(df))]
 
     return df
+
 
 def set_labels(normalized_df, problem=PROBLEM):
     if "trueLabel" in normalized_df.columns:
@@ -155,7 +160,7 @@ def set_labels(normalized_df, problem=PROBLEM):
         normalized_df["trueLabel"] = normalized_df["trueLabel"].astype(str)
         set_of_labels = set()
     elif "trueLabel" not in normalized_df.columns:
-        print("O dataset escolhido não tem labels originais.") 
+        print("O dataset escolhido não tem labels originais.")
 
     if problem == "multi":
         for i in range(len(normalized_df["trueLabel"])):
@@ -167,32 +172,37 @@ def set_labels(normalized_df, problem=PROBLEM):
                 set_of_labels.add(j.split(" ")[0])
     else:
         raise ValueError
-    
+
     numberLabels = len(set_of_labels)
 
     print(set_of_labels)
     return set_of_labels, numberLabels
 
+
 def remove_punctuation(text):
-    punctuationfree="".join([i for i in text if i not in string.punctuation])
+    punctuationfree = "".join([i for i in text if i not in string.punctuation])
     return punctuationfree
 
+
 def preProcessingText(normalizedDF):
-  dataframe = normalizedDF
-  dataframe['utterance']= dataframe['utterance'].apply(lambda x: x.lower())
-  re.sub(r'https?://[\n\S]+\b', '<URL>', dataframe['utterance'])
-  return dataframe
+    dataframe = normalizedDF
+    dataframe["utterance"] = dataframe["utterance"].apply(lambda x: x.lower())
+    re.sub(r"https?://[\n\S]+\b", "<URL>", dataframe["utterance"])
+    return dataframe
+
 
 def purity_score(y_true, y_pred):
     # compute contingency matrix (also called confusion matrix)
     contingency_matrix = metrics.cluster.contingency_matrix(y_true, y_pred)
-    return np.sum(np.amax(contingency_matrix, axis=0)) / np.sum(contingency_matrix) 
+    return np.sum(np.amax(contingency_matrix, axis=0)) / np.sum(contingency_matrix)
+
 
 def inversepurity_score(y_true, y_pred):
     # compute contingency matrix (also called confusion matrix)
     #  Inverse Purity, all you need to do is replace "axis=0" by "axis=1".
     contingency_matrix = metrics.cluster.contingency_matrix(y_true, y_pred)
-    return np.sum(np.amax(contingency_matrix, axis=1)) / np.sum(contingency_matrix) 
+    return np.sum(np.amax(contingency_matrix, axis=1)) / np.sum(contingency_matrix)
+
 
 def evaluation(y_predicted, normalized_df, set_of_labels, n_clusters):
     evaluation_df = pd.DataFrame()
@@ -239,117 +249,136 @@ def evaluation(y_predicted, normalized_df, set_of_labels, n_clusters):
         metrics.accuracy_score(labels_true, labels_pred),
     )
     print("V-Measure: ", metrics.v_measure_score(labels_true, labels_pred))
-    print('Purity: ', purity_score(labels_true, labels_pred))
-    print('Inverse Purity: ', inversepurity_score(labels_true, labels_pred))
-    purityf1 = (purity_score(labels_true, labels_pred)+inversepurity_score(labels_true, labels_pred))/2
-    print('Purity F1: ', purityf1)
+    print("Purity: ", purity_score(labels_true, labels_pred))
+    print("Inverse Purity: ", inversepurity_score(labels_true, labels_pred))
+    purityf1 = (
+        purity_score(labels_true, labels_pred)
+        + inversepurity_score(labels_true, labels_pred)
+    ) / 2
+    print("Purity F1: ", purityf1)
+
 
 def EvaluationMultiLabel(normalizedDF, number_clusters, problem, df_final):
-  # define all labels in a single list to get all classes names, if it's multilabel or single label
-  setOfLabels = set()
-  if problem == "multi":
-      #print("Multi-Label Problem")
-      for i in range(len(normalizedDF['trueLabel'])):
-          for j in normalizedDF['trueLabel'][i].split(','):
-            setOfLabels.add(j.split(" ")[0])
-            for j in normalizedDF['trueLabel'][i].split('\n'):
-              setOfLabels.add(j.split(",")[0])
-      setOfLabels.remove("")
-  if problem == "single":
-    #print("Single-Label Problem")
-    for i in range(len(normalizedDF['trueLabel'])):
-      for j in normalizedDF['trueLabel'][i].split('\n'):
-        setOfLabels.add(j.split(" ")[0])
-  classes = list(setOfLabels)
-  
-  # define the true Label in a list
-  y_expected = []
-  for i in range(len(normalizedDF['trueLabel'])):
-    sublist = []
-    for j in normalizedDF['trueLabel'][i].split(','):
-      if(len(j)>0):
-        sublist.append(j)
-    y_expected.append(sublist)
+    # define all labels in a single list to get all classes names, if it's multilabel or single label
+    setOfLabels = set()
+    if problem == "multi":
+        # print("Multi-Label Problem")
+        for i in range(len(normalizedDF["trueLabel"])):
+            for j in normalizedDF["trueLabel"][i].split(","):
+                setOfLabels.add(j.split(" ")[0])
+                for j in normalizedDF["trueLabel"][i].split("\n"):
+                    setOfLabels.add(j.split(",")[0])
+        setOfLabels.remove("")
+    if problem == "single":
+        # print("Single-Label Problem")
+        for i in range(len(normalizedDF["trueLabel"])):
+            for j in normalizedDF["trueLabel"][i].split("\n"):
+                setOfLabels.add(j.split(" ")[0])
+    classes = list(setOfLabels)
 
-  # multilabel Binarizer
-  multilabel_binarizer = MultiLabelBinarizer(classes=classes)
-  multilabel_binarizer.fit([[classes]])
-  y_expected_binarizer = multilabel_binarizer.transform(y_expected)
+    # define the true Label in a list
+    y_expected = []
+    for i in range(len(normalizedDF["trueLabel"])):
+        sublist = []
+        for j in normalizedDF["trueLabel"][i].split(","):
+            if len(j) > 0:
+                sublist.append(j)
+        y_expected.append(sublist)
 
-  # create dataframe with all labels binarized
-  df_labels_binarizer = pd.DataFrame(y_expected_binarizer, columns = [classes])
+    # multilabel Binarizer
+    multilabel_binarizer = MultiLabelBinarizer(classes=classes)
+    multilabel_binarizer.fit([[classes]])
+    y_expected_binarizer = multilabel_binarizer.transform(y_expected)
 
-  # create matrix of occurrencies lines -> clusters; rows -> labels
-  matriz_contagens = np.zeros((number_clusters, number_clusters)) 
-  for index, row in df_labels_binarizer.iterrows():
-    for i in range(len(row.values)):
-      if row.values[i] == 1:
-        matriz_contagens[df_final['n_clusters_final'][index], i] += 1
-      
-  #create dataframe with counts (clusters, labels)
-  df_countLabels = pd.DataFrame(matriz_contagens, columns = [classes])
+    # create dataframe with all labels binarized
+    df_labels_binarizer = pd.DataFrame(y_expected_binarizer, columns=[classes])
 
-  df_countLabels = df_countLabels.reset_index(drop=True)
-  df_countLabels = pd.DataFrame(df_countLabels.to_records())
-  df_countLabels = df_countLabels.drop(columns=["index"])
-  df_countLabels.columns = df_countLabels.columns.str.replace("[('')]", "", regex=True)
+    # create matrix of occurrencies lines -> clusters; rows -> labels
+    matriz_contagens = np.zeros((number_clusters, number_clusters))
+    for index, row in df_labels_binarizer.iterrows():
+        for i in range(len(row.values)):
+            if row.values[i] == 1:
+                matriz_contagens[df_final["n_clusters_final"][index], i] += 1
 
-  # look for the max values in each row
-  mxs = df_countLabels.eq(df_countLabels.max(axis=1), axis=0)
-  # join the column names of the max values of each row into a single string
-  df_countLabels['MaxLabel'] = mxs.dot(mxs.columns + '').str.rstrip('')
+    # create dataframe with counts (clusters, labels)
+    df_countLabels = pd.DataFrame(matriz_contagens, columns=[classes])
 
-  def match(row):
-    pred_labels = row['predictedLabel'].rstrip(',').split(',')
-    true_labels = row['trueLabel'].rstrip(',').split(',')
-    for label in pred_labels:
-        if label in true_labels:
-            return True
-    return False
+    df_countLabels = df_countLabels.reset_index(drop=True)
+    df_countLabels = pd.DataFrame(df_countLabels.to_records())
+    df_countLabels = df_countLabels.drop(columns=["index"])
+    df_countLabels.columns = df_countLabels.columns.str.replace(
+        "[('')]", "", regex=True
+    )
 
-  def copy_value_or_null(row):
-    if row['PartialMatch']:
-        return row['predictedLabel']
-    else:
-        return 'null'
+    # look for the max values in each row
+    mxs = df_countLabels.eq(df_countLabels.max(axis=1), axis=0)
+    # join the column names of the max values of each row into a single string
+    df_countLabels["MaxLabel"] = mxs.dot(mxs.columns + "").str.rstrip("")
 
-  if problem == "single":
-    df_final['predictedLabel'] = df_final['predictedLabel'] .replace(',','', regex=True)
-    df_final['ExactlyMatch'] = df_final.predictedLabel.eq(df_final.trueLabel)
-    true_count = (df_final['ExactlyMatch']).value_counts()[True]
-    false_count = (df_final['ExactlyMatch']).value_counts()[False]
-    total_count = true_count + false_count
-    accuracy_score = true_count/total_count
-    print("Evaluation:\nExact Accuracy: ", accuracy_score)
-    print('Exact V-Measure: ', metrics.v_measure_score(df_final['trueLabel'], df_final['predictedLabel']))
+    def match(row):
+        pred_labels = row["predictedLabel"].rstrip(",").split(",")
+        true_labels = row["trueLabel"].rstrip(",").split(",")
+        for label in pred_labels:
+            if label in true_labels:
+                return True
+        return False
 
-  if problem == "multi":
-    df_final['predictedLabel'] = df_final['cluster'].map(df_countLabels['MaxLabel'])
-    df_final['ExactMatch'] = df_final.predictedLabel.eq(df_final.trueLabel)
-    true_count = (df_final['ExactMatch']).value_counts()[True]
-    false_count = (df_final['ExactMatch']).value_counts()[False]
-    total_count = true_count + false_count
-    accuracy_score = true_count/total_count
-    print("Evaluation:\nExact Accuracy: ", accuracy_score)
-    print('Exact V-Measure: ', metrics.v_measure_score(df_final['trueLabel'], df_final['predictedLabel']))
+    def copy_value_or_null(row):
+        if row["PartialMatch"]:
+            return row["predictedLabel"]
+        else:
+            return "null"
 
-    df_final['PartialMatch'] = df_final.apply(match, axis=1)
-    true_count_partial = (df_final['PartialMatch']).value_counts()[True]
-    false_count_partial = (df_final['PartialMatch']).value_counts()[False]
-    total_count_partial = true_count_partial + false_count_partial
-    accuracy_score_partial = true_count_partial/total_count_partial
-    print("Partial Accuracy: ", accuracy_score_partial)
-    #df_final['PartialLabel'] = df_final['PartialMatch'].values
-    df_final['PartialLabel'] = df_final.apply(copy_value_or_null, axis=1)
-    print('Partial V-Measure: ', metrics.v_measure_score(df_final['trueLabel'], df_final['PartialLabel']))
+    if problem == "single":
+        df_final["predictedLabel"] = df_final["predictedLabel"].replace(
+            ",", "", regex=True
+        )
+        df_final["ExactlyMatch"] = df_final.predictedLabel.eq(df_final.trueLabel)
+        true_count = (df_final["ExactlyMatch"]).value_counts()[True]
+        false_count = (df_final["ExactlyMatch"]).value_counts()[False]
+        total_count = true_count + false_count
+        accuracy_score = true_count / total_count
+        print("Evaluation:\nExact Accuracy: ", accuracy_score)
+        print(
+            "Exact V-Measure: ",
+            metrics.v_measure_score(df_final["trueLabel"], df_final["predictedLabel"]),
+        )
+
+    if problem == "multi":
+        df_final["predictedLabel"] = df_final["cluster"].map(df_countLabels["MaxLabel"])
+        df_final["ExactMatch"] = df_final.predictedLabel.eq(df_final.trueLabel)
+        true_count = (df_final["ExactMatch"]).value_counts()[True]
+        false_count = (df_final["ExactMatch"]).value_counts()[False]
+        total_count = true_count + false_count
+        accuracy_score = true_count / total_count
+        print("Evaluation:\nExact Accuracy: ", accuracy_score)
+        print(
+            "Exact V-Measure: ",
+            metrics.v_measure_score(df_final["trueLabel"], df_final["predictedLabel"]),
+        )
+
+        df_final["PartialMatch"] = df_final.apply(match, axis=1)
+        true_count_partial = (df_final["PartialMatch"]).value_counts()[True]
+        false_count_partial = (df_final["PartialMatch"]).value_counts()[False]
+        total_count_partial = true_count_partial + false_count_partial
+        accuracy_score_partial = true_count_partial / total_count_partial
+        print("Partial Accuracy: ", accuracy_score_partial)
+        # df_final['PartialLabel'] = df_final['PartialMatch'].values
+        df_final["PartialLabel"] = df_final.apply(copy_value_or_null, axis=1)
+        print(
+            "Partial V-Measure: ",
+            metrics.v_measure_score(df_final["trueLabel"], df_final["PartialLabel"]),
+        )
+
 
 def match(row):
-    pred_labels = row['predictedLabel'].rstrip(',').split(',')
-    true_labels = row['trueLabel'].rstrip(',').split(',')
+    pred_labels = row["predictedLabel"].rstrip(",").split(",")
+    true_labels = row["trueLabel"].rstrip(",").split(",")
     for label in pred_labels:
         if label in true_labels:
             return True
     return False
+
 
 def silhouette_method(data, min_k, max_k, incr):
     number_clusters = 0
@@ -386,32 +415,34 @@ def silhouette_method(data, min_k, max_k, incr):
 
     return number_clusters
 
+
 def run_test(
     df: pd.DataFrame,
     package: str,
     representation: str,
     labels_type: str,
     n_clusters: int = 0,
-    model_cache_folder: str = None
+    model_cache_folder: str = None,
 ):
-
-    nlp = spacy.load(package)
+    nlp = load_spacy(package)
     stopwordseng = nltk.corpus.stopwords.words("english")
-    #stopwordseng = nltk.corpus.stopwords.words("portuguese")
+    # stopwordseng = nltk.corpus.stopwords.words("portuguese")
     data = "/app/data/MultiWOZ_DAs.csv"
     corpus = data
-    user = "both_separately" #both or both_separately
+    user = "both_separately"  # both or both_separately
     if corpus == data:
         problem = "single"
     else:
         problem = "multi"
 
-    #df = df.loc[df['Acc_Query'] == 'VODAFONE']
+    # df = df.loc[df['Acc_Query'] == 'VODAFONE']
 
     if user == "both" or user == "BOTH":
         # normalize turn_id, regex if true normalize URL's and Usernames started with '@', remove greeting words
-        normalized_df = normalize_dataset(df, regex=True, removeGreetings=False, speaker='both')
-        
+        normalized_df = normalize_dataset(
+            df, regex=True, removeGreetings=False, speaker="both"
+        )
+
         # Functions to transform into vectors (WORD EMBEDDING)
         if representation == "tfidf":
             topic_features = topic_features_to_remove(
@@ -437,9 +468,9 @@ def run_test(
 
         print("O número de Clusters a usar será " + str(n_clusters) + "!!")
 
-       # K-Means
+        # K-Means
         y_predicted, centers = clustering_kmeans(vectors, n_clusters)
-        normalized_df = normalized_df.assign(cluster = y_predicted)
+        normalized_df = normalized_df.assign(cluster=y_predicted)
 
         # só caso exista labels
         if "trueLabel" in normalized_df.columns:
@@ -452,66 +483,84 @@ def run_test(
         if labels_type == "verbs":
             verbs = describe_clusters_verbs(nlp, n_clusters, normalized_df, y_predicted)
             print(verbs)
-            labels_type = verbs['labels'].to_dict()
+            labels_type = verbs["labels"].to_dict()
 
-        #elif labels_type == "closestDocuments":
+        # elif labels_type == "closestDocuments":
         #    closest_documents = describe_clusters_closest(normalized_df, y_predicted, vectors, centers, n_clusters)
         #    labels_type = closest_documents['labels'].to_dict()
 
         elif labels_type == "bigrams":
             bigrams = describe_clusters_bigrams(n_clusters, normalized_df, y_predicted)
             print(bigrams)
-            labels_type = bigrams['labels'].to_dict()
-       
-        #criar as labels para os clusters, quando se faz system e utilizador juntos
+            labels_type = bigrams["labels"].to_dict()
+
+        # criar as labels para os clusters, quando se faz system e utilizador juntos
         # get list of values
-        listValuesBoth = (list(labels_type.values()))
-        listValuesClusters = listValuesBoth 
+        listValuesBoth = list(labels_type.values())
+        listValuesClusters = listValuesBoth
         names = []
         names = listValuesClusters
-        word1 = 'SOD'
-        word2 = 'EOD'
-        ttl = word1 , word2
+        word1 = "SOD"
+        word2 = "EOD"
+        ttl = word1, word2
         names.extend(ttl)
 
-        #matriz criada para os dois juntos (system + user)
+        # matriz criada para os dois juntos (system + user)
         df_final = normalized_df
-        numberLabelsMatrix = (n_clusters+2) # +2 (EOD & SOD)
-        occurrence_matrix = np.zeros((numberLabelsMatrix, numberLabelsMatrix)) #nclusters(system+user) + 2 (para EOD e SOD)
-        #CRIAR MATRIZ DE OCORRÊNCIAS
+        numberLabelsMatrix = n_clusters + 2  # +2 (EOD & SOD)
+        occurrence_matrix = np.zeros(
+            (numberLabelsMatrix, numberLabelsMatrix)
+        )  # nclusters(system+user) + 2 (para EOD e SOD)
+        # CRIAR MATRIZ DE OCORRÊNCIAS
 
-        normalized_df.sort_values(by=['sequence'], inplace=True) 
-        df_final.sort_values(by=['sequence'], inplace=True) 
-        for i in range(normalized_df['dialogue_id'].iat[-1]+1):
+        normalized_df.sort_values(by=["sequence"], inplace=True)
+        df_final.sort_values(by=["sequence"], inplace=True)
+        for i in range(normalized_df["dialogue_id"].iat[-1] + 1):
             turno_anterior = 0
             fim_dialogo = -1
-            inicio_dialogo = df_final['cluster'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == 0)]
-            occurrence_matrix[n_clusters, inicio_dialogo] = occurrence_matrix[n_clusters, inicio_dialogo] + 1
-            for turno in df_final['turn_id'].loc[(df_final.dialogue_id == i) & (df_final.turn_id != 0)]:
-                dialogo = df_final['cluster'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == turno)]
-                dialogo_anterior = df_final['cluster'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == turno_anterior)]
-                occurrence_matrix[dialogo_anterior, dialogo] = occurrence_matrix[dialogo_anterior, dialogo] + 1
+            inicio_dialogo = df_final["cluster"].loc[
+                (df_final.dialogue_id == i) & (df_final.turn_id == 0)
+            ]
+            occurrence_matrix[n_clusters, inicio_dialogo] = (
+                occurrence_matrix[n_clusters, inicio_dialogo] + 1
+            )
+            for turno in df_final["turn_id"].loc[
+                (df_final.dialogue_id == i) & (df_final.turn_id != 0)
+            ]:
+                dialogo = df_final["cluster"].loc[
+                    (df_final.dialogue_id == i) & (df_final.turn_id == turno)
+                ]
+                dialogo_anterior = df_final["cluster"].loc[
+                    (df_final.dialogue_id == i) & (df_final.turn_id == turno_anterior)
+                ]
+                occurrence_matrix[dialogo_anterior, dialogo] = (
+                    occurrence_matrix[dialogo_anterior, dialogo] + 1
+                )
                 turno_anterior = turno
                 fim_dialogo = dialogo
-            occurrence_matrix[fim_dialogo, n_clusters+1] = occurrence_matrix[fim_dialogo, n_clusters+1]  + 1
-        
+            occurrence_matrix[fim_dialogo, n_clusters + 1] = (
+                occurrence_matrix[fim_dialogo, n_clusters + 1] + 1
+            )
+
         # Find the sum of each row
         row_sums = occurrence_matrix.sum(axis=1)
 
         # Divide each element in the matrix by the corresponding row sum
         transition_matrix = occurrence_matrix / (row_sums[:, np.newaxis])
         matrix = pd.DataFrame(transition_matrix, index=names, columns=names)
-        matrix = matrix.round(decimals = 2)
+        matrix = matrix.round(decimals=2)
         matrix = matrix.fillna(0.00)
-     
-        return generate_markov_chain(n_clusters, matrix) #both 
+
+        return generate_markov_chain(n_clusters, matrix)  # both
 
     elif user == "both_separately" or user == "BOTH_SEPARATELY":
-         # normalize turn_id, regex if true normalize URL's and Usernames started with '@', remove greeting words
-        normalized_df = normalize_dataset(df, regex=True, removeGreetings=False, speaker='both')
-        normalized_df_user = normalized_df[normalized_df['Speaker'] == 'USER']
-        normalized_df_system = normalized_df[normalized_df['Speaker'] == 'SYSTEM']
-    
+        # normalize turn_id, regex if true normalize URL's and Usernames started with '@', remove greeting words
+        normalized_df = normalize_dataset(
+            df, regex=True, removeGreetings=False, speaker="both"
+        )
+        normalized_df_user = normalized_df[normalized_df["Speaker"] == "USER"]
+        normalized_df_system = normalized_df[normalized_df["Speaker"] == "SYSTEM"]
+
         # Functions to transform into vectors (WORD EMBEDDING)
         if representation == "tfidf":
             topic_features = topic_features_to_remove(
@@ -545,12 +594,18 @@ def run_test(
 
         print("Número de Clusters para USER: " + str(n_clusters_user))
         print("Número de Clusters para SYSTEM: " + str(n_clusters_system))
-       # K-Means
-        y_predicted_user, centers_user = clustering_kmeans(vectors_user, n_clusters_user)
-        y_predicted_system, centers_system = clustering_kmeans(vectors_system, n_clusters_system)
-        
-        normalized_df_user = normalized_df_user.assign(cluster_user = y_predicted_user)
-        normalized_df_system = normalized_df_system.assign(cluster_system = y_predicted_system)
+        # K-Means
+        y_predicted_user, centers_user = clustering_kmeans(
+            vectors_user, n_clusters_user
+        )
+        y_predicted_system, centers_system = clustering_kmeans(
+            vectors_system, n_clusters_system
+        )
+
+        normalized_df_user = normalized_df_user.assign(cluster_user=y_predicted_user)
+        normalized_df_system = normalized_df_system.assign(
+            cluster_system=y_predicted_system
+        )
         df_final = pd.concat([normalized_df_user, normalized_df_system])
 
         # só caso exista labels
@@ -558,93 +613,125 @@ def run_test(
             # nº de Dialog Acts / Intents reais -> usado para o t-SNE e PCA
             # nDAsInt = normalizedDF['trueLabel'].nunique()
             set_of_labels = set_labels(df_final, problem)
-            #evaluation(y_predicted_user, normalized_df_user, set_of_labels, n_clusters_user)
-            #evaluation(y_predicted_system, normalized_df_system, set_of_labels, n_clusters_system)
-            #EvaluationMultiLabel(normalized_df_user, n_clusters_user, problem, df_final)
-            #EvaluationMultiLabel(normalized_df_system, n_clusters_system, problem, df_final)
+            # evaluation(y_predicted_user, normalized_df_user, set_of_labels, n_clusters_user)
+            # evaluation(y_predicted_system, normalized_df_system, set_of_labels, n_clusters_system)
+            # EvaluationMultiLabel(normalized_df_user, n_clusters_user, problem, df_final)
+            # EvaluationMultiLabel(normalized_df_system, n_clusters_system, problem, df_final)
         elif "trueLabel" not in df_final.columns:
             print("O dataset escolhido não tem labels originais.")
 
         # Describe Clusters -> Bigrams | Verbs | Closest Document
         if labels_type == "verbs":
-            verbs_user = describe_clusters_verbs(nlp, n_clusters_user, normalized_df_user, y_predicted_user)
-            verbs_system = describe_clusters_verbs(nlp, n_clusters_system, normalized_df_system, y_predicted_system)
-            labels_type_user = verbs_user['labels'].to_dict()
-            labels_type_system = verbs_system['labels'].to_dict()
+            verbs_user = describe_clusters_verbs(
+                nlp, n_clusters_user, normalized_df_user, y_predicted_user
+            )
+            verbs_system = describe_clusters_verbs(
+                nlp, n_clusters_system, normalized_df_system, y_predicted_system
+            )
+            labels_type_user = verbs_user["labels"].to_dict()
+            labels_type_system = verbs_system["labels"].to_dict()
             print("labels_type_user", labels_type_user)
             print("labels_type_system", labels_type_system)
-        #elif labels_type == "closestDocuments":
+        # elif labels_type == "closestDocuments":
         #    closest_documents_user = describe_clusters_closest(nlp, n_clusters, normalized_df_user, y_predicted_user)
         #    closest_documents_system = describe_clusters_closest(nlp, n_clusters, normalized_df_system, y_predicted_system)
         #    labels_type_user = closest_documents_user['labels'].to_dict()
         #    labels_type_system = closest_documents_system['labels'].to_dict()
 
         elif labels_type == "bigrams":
-            bigrams_user = describe_clusters_bigrams(n_clusters_user, normalized_df_user, y_predicted_user)
-            bigrams_system = describe_clusters_bigrams(n_clusters_system, normalized_df_system, y_predicted_system)
-            labels_type_user = bigrams_user['labels'].to_dict()
-            labels_type_system = bigrams_system['labels'].to_dict()
-       
-        #criar as labels para os clusters, quando se faz system e utilizador juntos
-        # get list of values
-        listValuesUsers = (list(labels_type_user.values()))
-        listValuesSystems = (list(labels_type_system.values()))
+            bigrams_user = describe_clusters_bigrams(
+                n_clusters_user, normalized_df_user, y_predicted_user
+            )
+            bigrams_system = describe_clusters_bigrams(
+                n_clusters_system, normalized_df_system, y_predicted_system
+            )
+            labels_type_user = bigrams_user["labels"].to_dict()
+            labels_type_system = bigrams_system["labels"].to_dict()
 
-         # add prefix user and sys
+        # criar as labels para os clusters, quando se faz system e utilizador juntos
+        # get list of values
+        listValuesUsers = list(labels_type_user.values())
+        listValuesSystems = list(labels_type_system.values())
+
+        # add prefix user and sys
         prefix_user = "user -> "
-        listValuesUsers = list(map(lambda element: prefix_user + "" + element, listValuesUsers))
+        listValuesUsers = list(
+            map(lambda element: prefix_user + "" + element, listValuesUsers)
+        )
         prefix_system = "sys -> "
-        listValuesSystems = list(map(lambda element: prefix_system + "" + element, listValuesSystems))
+        listValuesSystems = list(
+            map(lambda element: prefix_system + "" + element, listValuesSystems)
+        )
         listValuesClusters = listValuesUsers + listValuesSystems
 
         names = []
         names = listValuesClusters
-        word1 = 'SOD'
-        word2 = 'EOD'
-        ttl = word1 , word2
+        word1 = "SOD"
+        word2 = "EOD"
+        ttl = word1, word2
         names.extend(ttl)
-      
-        df_final['n_clusters_final']= df_final['cluster_user'].fillna(0) + df_final['cluster_system'].fillna(0)
-        df_final.sort_values(by=['sequence'], inplace=True)
-        df_final['n_clusters_final'] = df_final['n_clusters_final'].astype(int)
-        df_final.loc[df_final['Speaker'] == 'SYSTEM', 'n_clusters_final'] += n_clusters_user
 
-        #matriz criada para os dois juntos (system + user)
+        df_final["n_clusters_final"] = df_final["cluster_user"].fillna(0) + df_final[
+            "cluster_system"
+        ].fillna(0)
+        df_final.sort_values(by=["sequence"], inplace=True)
+        df_final["n_clusters_final"] = df_final["n_clusters_final"].astype(int)
+        df_final.loc[
+            df_final["Speaker"] == "SYSTEM", "n_clusters_final"
+        ] += n_clusters_user
+
+        # matriz criada para os dois juntos (system + user)
         nClustersBoth = n_clusters_user + n_clusters_system
-        numberLabelsMatrix = (nClustersBoth+2) # +2 (EOD & SOD)
-        occurrence_matrix = np.zeros((numberLabelsMatrix, numberLabelsMatrix)) #nclusters(system+user) + 2 (para EOD e SOD)
-        #CRIAR MATRIZ DE OCORRÊNCIAS
-        for i in range(normalized_df['dialogue_id'].iat[-1]+1):
+        numberLabelsMatrix = nClustersBoth + 2  # +2 (EOD & SOD)
+        occurrence_matrix = np.zeros(
+            (numberLabelsMatrix, numberLabelsMatrix)
+        )  # nclusters(system+user) + 2 (para EOD e SOD)
+        # CRIAR MATRIZ DE OCORRÊNCIAS
+        for i in range(normalized_df["dialogue_id"].iat[-1] + 1):
             turno_anterior = 0
             fim_dialogo = -1
-            inicio_dialogo = df_final['n_clusters_final'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == 0)]
-            occurrence_matrix[nClustersBoth, inicio_dialogo] = occurrence_matrix[nClustersBoth, inicio_dialogo] + 1
-            for turno in df_final['turn_id'].loc[(df_final.dialogue_id == i) & (df_final.turn_id != 0)]:
-                dialogo = df_final['n_clusters_final'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == turno)]
-                dialogo_anterior = df_final['n_clusters_final'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == turno_anterior)]
-                occurrence_matrix[dialogo_anterior, dialogo] = occurrence_matrix[dialogo_anterior, dialogo] + 1
+            inicio_dialogo = df_final["n_clusters_final"].loc[
+                (df_final.dialogue_id == i) & (df_final.turn_id == 0)
+            ]
+            occurrence_matrix[nClustersBoth, inicio_dialogo] = (
+                occurrence_matrix[nClustersBoth, inicio_dialogo] + 1
+            )
+            for turno in df_final["turn_id"].loc[
+                (df_final.dialogue_id == i) & (df_final.turn_id != 0)
+            ]:
+                dialogo = df_final["n_clusters_final"].loc[
+                    (df_final.dialogue_id == i) & (df_final.turn_id == turno)
+                ]
+                dialogo_anterior = df_final["n_clusters_final"].loc[
+                    (df_final.dialogue_id == i) & (df_final.turn_id == turno_anterior)
+                ]
+                occurrence_matrix[dialogo_anterior, dialogo] = (
+                    occurrence_matrix[dialogo_anterior, dialogo] + 1
+                )
                 turno_anterior = turno
                 fim_dialogo = dialogo
-            occurrence_matrix[fim_dialogo, nClustersBoth+1] = occurrence_matrix[fim_dialogo, nClustersBoth+1]  + 1
-        
+            occurrence_matrix[fim_dialogo, nClustersBoth + 1] = (
+                occurrence_matrix[fim_dialogo, nClustersBoth + 1] + 1
+            )
+
         # for i in range(df_final['dialogue_id'].iat[-1]+1):
         #     turno_anterior = 0
         #     fim_dialogo = -1
         #     inicio_dialogo_user = df_final['cluster_user'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == 0)]
         #     inicio_dialogo_system = df_final['cluster_system'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == 0)]
-        #     occurrence_matrix[nClustersBoth, inicio_dialogo_user] = occurrence_matrix[nClustersBoth, inicio_dialogo_user] + 1 
-        #     occurrence_matrix[nClustersBoth, inicio_dialogo_system] = occurrence_matrix[nClustersBoth, inicio_dialogo_system] + 1 
+        #     occurrence_matrix[nClustersBoth, inicio_dialogo_user] = occurrence_matrix[nClustersBoth, inicio_dialogo_user] + 1
+        #     occurrence_matrix[nClustersBoth, inicio_dialogo_system] = occurrence_matrix[nClustersBoth, inicio_dialogo_system] + 1
         #     for turno in df_final['turn_id'].loc[(df_final.dialogue_id == i) & (df_final.turn_id != 0)]:
         #         dialogo_user = df_final['cluster_user'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == turno)]
-        #         dialogo_anterior_user = df_final['cluster_user'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == turno_anterior)] 
+        #         dialogo_anterior_user = df_final['cluster_user'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == turno_anterior)]
         #         dialogo_system = df_final['cluster_system'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == turno)]
-        #         dialogo_anterior_system = df_final['cluster_system'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == turno_anterior)] 
+        #         dialogo_anterior_system = df_final['cluster_system'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == turno_anterior)]
         #         occurrence_matrix[dialogo_anterior_user, dialogo_user] = occurrence_matrix[dialogo_anterior_user, dialogo_user] + 1
         #         occurrence_matrix[dialogo_anterior_system, dialogo_system] = occurrence_matrix[dialogo_anterior_system, dialogo_system] + 1
         #         turno_anterior = turno
         #         fim_dialogo = dialogo_system
-        #     occurrence_matrix[fim_dialogo, nClustersBoth+1] = occurrence_matrix[fim_dialogo, nClustersBoth+1]  + 1 
-            
+        #     occurrence_matrix[fim_dialogo, nClustersBoth+1] = occurrence_matrix[fim_dialogo, nClustersBoth+1]  + 1
+
         # Find the sum of each row
         row_sums = occurrence_matrix.sum(axis=1)
 
@@ -652,9 +739,11 @@ def run_test(
         transition_matrix = np.divide(occurrence_matrix, row_sums[:, np.newaxis])
 
         matrix = pd.DataFrame(transition_matrix, index=names, columns=names)
-        matrix = matrix.round(decimals = 2)
+        matrix = matrix.round(decimals=2)
         matrix = matrix.fillna(0.00)
-         
-        return generate_markov_chain_separately(n_clusters_user, n_clusters_system, matrix) #both_separetely
-    
+
+        return generate_markov_chain_separately(
+            n_clusters_user, n_clusters_system, matrix
+        )  # both_separetely
+
     return None
