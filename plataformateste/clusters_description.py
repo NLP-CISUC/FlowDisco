@@ -3,6 +3,46 @@ import pandas as pd
 from sklearn import metrics
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics import pairwise_distances_argmin_min
+from keybert import KeyBERT
+
+def describe_clusters_kBERT(n_clusters, normalized_df, y_predicted, model, stopwords, ngrams):
+    docs = normalized_df["utterance"]
+    doc = docs.to_string()
+    kw_model = KeyBERT(model=model)
+    keywords = kw_model.extract_keywords(doc, keyphrase_ngram_range=(1, ngrams), stop_words="english", highlight=False, top_n=n_clusters)
+
+    keywords_list= list(dict(keywords).keys())
+
+    df_teste = pd.DataFrame()  # utterance and y_predicted
+    df_teste["predicted"] = y_predicted
+    df_teste["corpus"] = normalized_df["utterance"]
+
+    list_clusters = []  # clusters
+    list_kBERT = []  # verbs
+
+    for p in range(n_clusters):
+        predicted_df = df_teste[df_teste["predicted"] == p]  # mudar numeros
+        corpus = predicted_df["corpus"]
+
+        df_corpus = pd.DataFrame(corpus)
+        df_corpus.columns = ["docs_in_cluster"]
+
+        list_clusters.append(f"Cluster {p}")
+        dataframe_output = pd.DataFrame(keywords, columns=['Output', 'temp'])
+        list_kBERT.append(dataframe_output["Output"].iat[p])
+
+    df1 = pd.DataFrame(list_clusters, columns=["clusters"])
+    df2 = pd.DataFrame(list_kBERT, columns=["labels"])
+    df2["labels"] = df2["labels"].str.cat(
+        df2.groupby("labels").cumcount().astype(str).str.replace("0", ""), sep=" "
+    )  # handle repeated labelled
+
+    df_labels = pd.concat([df1, df2], axis=1)
+
+    print("Cluster Describe KBERT")
+    print(df_labels)
+
+    return df_labels
 
 def describe_clusters_bigrams(n_clusters, normalized_df, y_predicted):
     df_teste = pd.DataFrame()  # utterance and y_predicted
@@ -42,9 +82,9 @@ def describe_clusters_bigrams(n_clusters, normalized_df, y_predicted):
     )  # handle repeated labelled
 
     df_labels = pd.concat([df1, df2], axis=1)
+
     print("Cluster Describe Bigrams")
     print(df_labels)
-
     return df_labels
 
 
@@ -105,6 +145,7 @@ def describe_clusters_verbs(nlp, n_clusters, normalized_df, y_predicted):
 
     print("Cluster Describe Verbs")
     print(df_labels)
+
     return df_labels
 	
 def describe_clusters_closest(normalized_df, y_predicted, vectors, centers, n_clusters):
