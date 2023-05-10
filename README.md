@@ -1,6 +1,6 @@
 # FlowDisco
 
-The dataset needs to have initially a dialogue_id (an integer and sequential number (0, 1, 2, 3, ...)), turn_id (an integer number), utterance and a speaker (only if we want to split between user and system) for each utterance. 
+The dataset needs to have initially a turn_id (an integer number), utterance and a speaker (only if we want to split between user and system) for each utterance. If you have dialogue_id it has to be an integer and sequential (0, 1, 2, 3, ...).
 
 Put both when there is no separation of user and system and both_separetely when this separation is made (default = both_separately).
 
@@ -21,6 +21,7 @@ contains only one value:
 3. label type (--labelsType):
     + bigrams (default value);
     + verbs;
+    + kBERT.
 4. Number of clusters manually entered (--nClusters):
     + integer value.
 
