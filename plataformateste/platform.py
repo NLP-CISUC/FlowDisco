@@ -17,6 +17,7 @@ from plataformateste.clusters_description import (
     describe_clusters_bigrams,
     describe_clusters_closest,
     describe_clusters_verbs,
+    describe_clusters_kBERT
 )
 from plataformateste.graphs import generate_markov_chain, generate_markov_chain_separately
 from plataformateste.vector_representation import (
@@ -36,7 +37,7 @@ CLUSTER_OPT = "equal"
 MODEL_NAME = "all-MiniLM-L6-v2"
 
 #Model for Portuguese
-# MODEL_NAME = "rufimelo/bert-large-portuguese-cased-sts"
+#MODEL_NAME = "rufimelo/bert-large-portuguese-cased-sts"
 
 def choose_number_of_clusters(normalized_df, opt=CLUSTER_OPT):
     column = normalized_df["trueLabel"].value_counts()
@@ -392,13 +393,14 @@ def run_test(
     representation: str,
     labels_type: str,
     n_clusters: int = 0,
+    ngrams: int=0,
     model_cache_folder: str = None
 ):
 
     nlp = spacy.load(package)
-    stopwordseng = nltk.corpus.stopwords.words("english")
-    #stopwordseng = nltk.corpus.stopwords.words("portuguese")
-    data = "/app/data/MultiWOZ_DAs.csv"
+    stopwords = nltk.corpus.stopwords.words("english")
+    #stopwords = nltk.corpus.stopwords.words("portuguese")
+    data = "/app/data/Mastodon.csv"
     corpus = data
     user = "both_separately" #both or both_separately
     if corpus == data:
@@ -413,16 +415,18 @@ def run_test(
         normalized_df = normalize_dataset(df, regex=True, removeGreetings=False, speaker='both')
         
         # Functions to transform into vectors (WORD EMBEDDING)
-        if representation == "tfidf":
+        if representation == "tfidf" or labels_type == "kBERT":
+            model = SentenceTransformer(MODEL_NAME, cache_folder=model_cache_folder)
             topic_features = topic_features_to_remove(
                 nlp, normalized_df, NUMBER_OF_FEATURES, topic_feature=False
             )  # topic features
             vectors = preprocessing_tfidf(
-                stopwordseng, normalized_df, topic_features, 0.8, 3
+                stopwords, normalized_df, topic_features, 0.8, 3
             )
-        elif representation == "word2vec":
+        elif representation == "word2vec" or labels_type == "kBERT":
+            model = SentenceTransformer(MODEL_NAME, cache_folder=model_cache_folder)
             vectors = word2vec(nlp, normalized_df)
-        elif representation == "sentenceTransformer":
+        elif representation == "sentenceTransformer" or labels_type == "kBERT":
             model = SentenceTransformer(MODEL_NAME, cache_folder=model_cache_folder)
             vectors = use_sentence_transformer(normalized_df, model)
         else:
@@ -453,6 +457,11 @@ def run_test(
             verbs = describe_clusters_verbs(nlp, n_clusters, normalized_df, y_predicted)
             print(verbs)
             labels_type = verbs['labels'].to_dict()
+
+        if labels_type == "kBERT":
+            kBERT = describe_clusters_kBERT(n_clusters, normalized_df, y_predicted, model, stopwords, ngrams)
+            print(kBERT)
+            labels_type = kBERT['labels'].to_dict()
 
         #elif labels_type == "closestDocuments":
         #    closest_documents = describe_clusters_closest(normalized_df, y_predicted, vectors, centers, n_clusters)
@@ -513,21 +522,23 @@ def run_test(
         normalized_df_system = normalized_df[normalized_df['Speaker'] == 'SYSTEM']
     
         # Functions to transform into vectors (WORD EMBEDDING)
-        if representation == "tfidf":
+        if representation == "tfidf" or labels_type == "kBERT":
+            model = SentenceTransformer(MODEL_NAME, cache_folder=model_cache_folder)
             topic_features = topic_features_to_remove(
                 nlp, normalized_df, NUMBER_OF_FEATURES, topic_feature=False
             )  # topic features
             vectors_user = preprocessing_tfidf(
-                stopwordseng, normalized_df_user, topic_features, 0.8, 3
+                stopwords, normalized_df_user, topic_features, 0.8, 3
             )
 
             vectors_system = preprocessing_tfidf(
-                stopwordseng, normalized_df_system, topic_features, 0.8, 3
+                stopwords, normalized_df_system, topic_features, 0.8, 3
             )
-        elif representation == "word2vec":
+        elif representation == "word2vec" or labels_type == "kBERT":
+            model = SentenceTransformer(MODEL_NAME, cache_folder=model_cache_folder)
             vectors_user = word2vec(nlp, normalized_df_user)
             vectors_system = word2vec(nlp, normalized_df_system)
-        elif representation == "sentenceTransformer":
+        elif representation == "sentenceTransformer" or labels_type == "kBERT":
             model = SentenceTransformer(MODEL_NAME, cache_folder=model_cache_folder)
             vectors_user = use_sentence_transformer(normalized_df_user, model)
             vectors_system = use_sentence_transformer(normalized_df_system, model)
@@ -584,6 +595,12 @@ def run_test(
             bigrams_system = describe_clusters_bigrams(n_clusters_system, normalized_df_system, y_predicted_system)
             labels_type_user = bigrams_user['labels'].to_dict()
             labels_type_system = bigrams_system['labels'].to_dict()
+
+        elif labels_type == "kBERT":
+            kBERT_user = describe_clusters_kBERT(n_clusters_user, normalized_df_user, y_predicted_user, model, stopwords, ngrams)
+            kBERT_system = describe_clusters_kBERT(n_clusters_system, normalized_df_system, y_predicted_system, model, stopwords, ngrams)
+            labels_type_user = kBERT_user['labels'].to_dict()
+            labels_type_system = kBERT_system['labels'].to_dict()
        
         #criar as labels para os clusters, quando se faz system e utilizador juntos
         # get list of values

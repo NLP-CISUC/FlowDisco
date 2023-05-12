@@ -92,20 +92,21 @@ def use_sentence_transformer(normalized_df, model):
     """To use the models of sentenceTransformer."""
     # transform Series into list
     sentences = normalized_df["utterance"].tolist()
+    dfe = pd.DataFrame(sentences)
+    dfe.head()
 
     # sentences are encoded by calling model.encode()
     embeddings = model.encode(sentences)
-    # print(embeddings)
+    df = pd.DataFrame(embeddings)
+    df.head()
 
     vectors = np.array(embeddings)
-    print(vectors.shape)
     # vectors = np.append(vectors, df_initial['turn_id'], axis=2)
     # final_vectors = np.column_stack((vectors,df_initial['turn_id'], df_initial['interlocutor']))
     # final_vectors = np.column_stack(vectors)
 
     # df_final = pd.DataFrame(final_vectors) #doubt if the return is final_vectors or df_final
     # print(final_vectors)
-    print("--> sentence-transformers used with success!")
     # pd.DataFrame(final_vectors).to_csv(r'/content/drive/MyDrive/ColabNotebooks/datasets/DFProcessed.csv', index=False)
     # final_vectors = pd.concat((vectors, df_initial['turn_id'], df_initial['interlocutor']), axis = 1).values #axis 1 meaning concatenates in column wise
 
@@ -121,7 +122,6 @@ def word2vec(nlp, normalized_df):
         vector = doc.vector
         vectors.append(vector)
   vectors = pd.DataFrame(vectors)
-  print(vectors.shape)
   print("--> word2vec used with success!")
   
   return pd.DataFrame(vectors)

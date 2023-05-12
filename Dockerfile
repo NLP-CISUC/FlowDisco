@@ -29,7 +29,7 @@ COPY ./plataformateste ${HOME}/plataformateste
 #CMD ["python", "-m", "plataformateste.main", "--data_filename", "twitter_full_dataset_v2.csv", "--package", "pt_core_news_sm", "--representation", "tfidf", "--n-clusters", "5", "--labels-type", "verbs"]
 
 #Portuguese
-#CMD ["python", "-m", "plataformateste.main", "--data_filename", "twitter_full_dataset_v2.csv", "--package", "pt_core_news_sm", "--representation", "tfidf", "--labels-type", "verbs"]
+#CMD ["python", "-m", "plataformateste.main", "--data_filename", "twitter_full_dataset_v2.csv", "--package", "pt_core_news_sm", "--representation", "tfidf", "--labels-type", "kBERT"]
 
 #English
-CMD ["python", "-m", "plataformateste.main", "--data_filename", "MultiWOZ_DAs.csv", "--package", "en_core_web_md", "--representation", "sentenceTransformer", "--labels-type", "bigrams"]
+CMD ["python", "-m", "plataformateste.main", "--data_filename", "MultiWOZ_DAs.csv", "--package", "en_core_web_md", "--representation", "sentenceTransformer", "--labels-type", "kBERT", "--ngrams", "3"]

@@ -8,7 +8,7 @@ RESULTS_FOLDER = Path(__file__).parent.parent / "results"
 
 def generate_markov_chain(n_clusters: int, matrix: pd.DataFrame) -> nx.MultiDiGraph:
     G = nx.MultiDiGraph()
-    threshold = 0.20  # set the threshold value
+    threshold = 0.15  # set the threshold value
     for i in range(len(matrix.columns)):
         for j in range(len(matrix.index)):
             if matrix.iloc[j,i] > threshold:
@@ -41,7 +41,7 @@ def generate_markov_chain(n_clusters: int, matrix: pd.DataFrame) -> nx.MultiDiGr
 def generate_markov_chain_separately(n_clusters_user: int, n_clusters_system: int, matrix: pd.DataFrame) -> nx.MultiDiGraph:
     n_clustersBoth = n_clusters_user + n_clusters_system
     G = nx.MultiDiGraph()
-    threshold = 0.20  # set the threshold value
+    threshold = 0.15  # set the threshold value
     for i in range(len(matrix.columns)):
         for j in range(len(matrix.index)):
             if matrix.iloc[j,i] > threshold:

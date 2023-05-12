@@ -4,6 +4,8 @@ gensim==4.3.0
 numpy==1.24.1
 networkx
 graphviz
+keybert
+bertopic
 pandas==1.5.3
 kneed
 transformers
