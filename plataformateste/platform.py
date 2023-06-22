@@ -6,6 +6,10 @@ import spacy
 import re
 import string
 from sentence_transformers import SentenceTransformer
+import statistics
+#Added in 2023/05/09
+from keybert import KeyBERT
+#---------------------------
 from sklearn import metrics
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
@@ -393,14 +397,14 @@ def run_test(
     representation: str,
     labels_type: str,
     n_clusters: int = 0,
-    ngrams: int=0,
+    n_grams: int=0,
     model_cache_folder: str = None
 ):
 
     nlp = spacy.load(package)
     stopwords = nltk.corpus.stopwords.words("english")
     #stopwords = nltk.corpus.stopwords.words("portuguese")
-    data = "/app/data/Mastodon.csv"
+    data = "/app/data/MultiWOZ_DAs.csv"
     corpus = data
     user = "both_separately" #both or both_separately
     if corpus == data:
@@ -409,28 +413,28 @@ def run_test(
         problem = "multi"
 
     #df = df.loc[df['Acc_Query'] == 'VODAFONE']
-
+    #df = df[df['Acc_Query'].str.contains('RTP')]
+    #df = df[df['Acc_Query'] == 'VODAFONE']
     if user == "both" or user == "BOTH":
         # normalize turn_id, regex if true normalize URL's and Usernames started with '@', remove greeting words
         normalized_df = normalize_dataset(df, regex=True, removeGreetings=False, speaker='both')
         
         # Functions to transform into vectors (WORD EMBEDDING)
-        if representation == "tfidf" or labels_type == "kBERT":
-            model = SentenceTransformer(MODEL_NAME, cache_folder=model_cache_folder)
+        if representation == "tfidf":
             topic_features = topic_features_to_remove(
                 nlp, normalized_df, NUMBER_OF_FEATURES, topic_feature=False
             )  # topic features
             vectors = preprocessing_tfidf(
                 stopwords, normalized_df, topic_features, 0.8, 3
             )
-        elif representation == "word2vec" or labels_type == "kBERT":
-            model = SentenceTransformer(MODEL_NAME, cache_folder=model_cache_folder)
+        elif representation == "word2vec":
             vectors = word2vec(nlp, normalized_df)
-        elif representation == "sentenceTransformer" or labels_type == "kBERT":
+        elif representation == "sentenceTransformer":
             model = SentenceTransformer(MODEL_NAME, cache_folder=model_cache_folder)
             vectors = use_sentence_transformer(normalized_df, model)
         else:
             raise ValueError
+
 
         if "trueLabel" in normalized_df.columns:
             # equal | total # nCluster = nDA / Int | total / max
@@ -459,7 +463,7 @@ def run_test(
             labels_type = verbs['labels'].to_dict()
 
         if labels_type == "kBERT":
-            kBERT = describe_clusters_kBERT(n_clusters, normalized_df, y_predicted, model, stopwords, ngrams)
+            kBERT = describe_clusters_kBERT(n_clusters, normalized_df, y_predicted, stopwords, n_grams)
             print(kBERT)
             labels_type = kBERT['labels'].to_dict()
 
@@ -491,7 +495,8 @@ def run_test(
 
         normalized_df.sort_values(by=['sequence'], inplace=True) 
         df_final.sort_values(by=['sequence'], inplace=True) 
-        for i in range(normalized_df['dialogue_id'].iat[-1]+1):
+
+        for i in range(int(normalized_df['dialogue_id'].iat[-1])+1):
             turno_anterior = 0
             fim_dialogo = -1
             inicio_dialogo = df_final['cluster'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == 0)]
@@ -522,8 +527,7 @@ def run_test(
         normalized_df_system = normalized_df[normalized_df['Speaker'] == 'SYSTEM']
     
         # Functions to transform into vectors (WORD EMBEDDING)
-        if representation == "tfidf" or labels_type == "kBERT":
-            model = SentenceTransformer(MODEL_NAME, cache_folder=model_cache_folder)
+        if representation == "tfidf":
             topic_features = topic_features_to_remove(
                 nlp, normalized_df, NUMBER_OF_FEATURES, topic_feature=False
             )  # topic features
@@ -534,11 +538,10 @@ def run_test(
             vectors_system = preprocessing_tfidf(
                 stopwords, normalized_df_system, topic_features, 0.8, 3
             )
-        elif representation == "word2vec" or labels_type == "kBERT":
-            model = SentenceTransformer(MODEL_NAME, cache_folder=model_cache_folder)
+        elif representation == "word2vec":
             vectors_user = word2vec(nlp, normalized_df_user)
             vectors_system = word2vec(nlp, normalized_df_system)
-        elif representation == "sentenceTransformer" or labels_type == "kBERT":
+        elif representation == "sentenceTransformer":
             model = SentenceTransformer(MODEL_NAME, cache_folder=model_cache_folder)
             vectors_user = use_sentence_transformer(normalized_df_user, model)
             vectors_system = use_sentence_transformer(normalized_df_system, model)
@@ -597,8 +600,8 @@ def run_test(
             labels_type_system = bigrams_system['labels'].to_dict()
 
         elif labels_type == "kBERT":
-            kBERT_user = describe_clusters_kBERT(n_clusters_user, normalized_df_user, y_predicted_user, model, stopwords, ngrams)
-            kBERT_system = describe_clusters_kBERT(n_clusters_system, normalized_df_system, y_predicted_system, model, stopwords, ngrams)
+            kBERT_user = describe_clusters_kBERT(n_clusters_user, normalized_df_user, y_predicted_user, stopwords, n_grams)
+            kBERT_system = describe_clusters_kBERT(n_clusters_system, normalized_df_system, y_predicted_system, stopwords, n_grams)
             labels_type_user = kBERT_user['labels'].to_dict()
             labels_type_system = kBERT_system['labels'].to_dict()
        
@@ -631,7 +634,7 @@ def run_test(
         numberLabelsMatrix = (nClustersBoth+2) # +2 (EOD & SOD)
         occurrence_matrix = np.zeros((numberLabelsMatrix, numberLabelsMatrix)) #nclusters(system+user) + 2 (para EOD e SOD)
         #CRIAR MATRIZ DE OCORRÊNCIAS
-        for i in range(normalized_df['dialogue_id'].iat[-1]+1):
+        for i in range(int(normalized_df['dialogue_id'].iat[-1])+1):
             turno_anterior = 0
             fim_dialogo = -1
             inicio_dialogo = df_final['n_clusters_final'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == 0)]
@@ -643,25 +646,20 @@ def run_test(
                 turno_anterior = turno
                 fim_dialogo = dialogo
             occurrence_matrix[fim_dialogo, nClustersBoth+1] = occurrence_matrix[fim_dialogo, nClustersBoth+1]  + 1
-        
-        # for i in range(df_final['dialogue_id'].iat[-1]+1):
-        #     turno_anterior = 0
-        #     fim_dialogo = -1
-        #     inicio_dialogo_user = df_final['cluster_user'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == 0)]
-        #     inicio_dialogo_system = df_final['cluster_system'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == 0)]
-        #     occurrence_matrix[nClustersBoth, inicio_dialogo_user] = occurrence_matrix[nClustersBoth, inicio_dialogo_user] + 1 
-        #     occurrence_matrix[nClustersBoth, inicio_dialogo_system] = occurrence_matrix[nClustersBoth, inicio_dialogo_system] + 1 
-        #     for turno in df_final['turn_id'].loc[(df_final.dialogue_id == i) & (df_final.turn_id != 0)]:
-        #         dialogo_user = df_final['cluster_user'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == turno)]
-        #         dialogo_anterior_user = df_final['cluster_user'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == turno_anterior)] 
-        #         dialogo_system = df_final['cluster_system'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == turno)]
-        #         dialogo_anterior_system = df_final['cluster_system'].loc[(df_final.dialogue_id == i) & (df_final.turn_id == turno_anterior)] 
-        #         occurrence_matrix[dialogo_anterior_user, dialogo_user] = occurrence_matrix[dialogo_anterior_user, dialogo_user] + 1
-        #         occurrence_matrix[dialogo_anterior_system, dialogo_system] = occurrence_matrix[dialogo_anterior_system, dialogo_system] + 1
-        #         turno_anterior = turno
-        #         fim_dialogo = dialogo_system
-        #     occurrence_matrix[fim_dialogo, nClustersBoth+1] = occurrence_matrix[fim_dialogo, nClustersBoth+1]  + 1 
-            
+
+        if "sentiment" in df_final.columns:
+           df_final['avg_sentiment'] = ''
+           line = 0
+           for n in range(max(df_final['n_clusters_final']) + 1):
+               cluster_df = df_final[df_final['n_clusters_final'] == n]
+               print("cluster df", cluster_df)
+               avg_sent = statistics.mean(cluster_df['sentiment'])
+               df_final['avg_sentiment'][line] = avg_sent
+               line = line + 1
+
+               df_final.loc[df_final.n_clusters_final == n, 'avg_sentiment'] = avg_sent
+           print(df_final.head(10))
+       
         # Find the sum of each row
         row_sums = occurrence_matrix.sum(axis=1)
 
@@ -672,6 +670,6 @@ def run_test(
         matrix = matrix.round(decimals = 2)
         matrix = matrix.fillna(0.00)
          
-        return generate_markov_chain_separately(n_clusters_user, n_clusters_system, matrix) #both_separetely
+        return generate_markov_chain_separately(n_clusters_user, n_clusters_system, matrix, df_final) #both_separetely
     
     return None
