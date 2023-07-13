@@ -14,7 +14,7 @@ RUN pip install numpy scipy pygraphviz
 #       python-pydot python3-pydot python-pygraphviz python3-pygraphviz; \
 #  rm -rf /var/lib/apt/lists/*
 ADD requirements.txt ${HOME}
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 RUN python -m spacy download en_core_web_sm && \
     python -m spacy download en_core_web_md && \
     python -m spacy download en_core_web_lg && \
