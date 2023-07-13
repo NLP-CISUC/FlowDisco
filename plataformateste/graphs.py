@@ -45,7 +45,10 @@ def traverse(dataframe, threshold, InputGraph, df_final):
             for j in dataframe.loc[i]:
                 if j > threshold:
                     print(i,"->", dataframe.columns[k], "weight ",j)
-                    InputGraph.add_edge(i,dataframe.columns[k],weight=j, label=j, sentiment=df_final.iloc[k]['avg_sentiment'])
+                    if "sentiment" in df_final.columns:
+                        InputGraph.add_edge(i,dataframe.columns[k],weight=j, label=j, sentiment=df_final.iloc[k]['avg_sentiment'])
+                    else:
+                        InputGraph.add_edge(i,dataframe.columns[k],weight=j, label=j)
                     if dataframe.columns[k] != 'EOD' and dataframe.columns[k] in non_visited and dataframe.columns[k] not in listi:
                         flag = 1
                         listi.append(dataframe.columns[k])
