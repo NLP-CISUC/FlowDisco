@@ -1,10 +1,11 @@
 from sklearn import metrics
 from sklearn.cluster import DBSCAN, KMeans
+import pickle
 
 
-def clustering_kmeans(vectors, n_clusters):
+def clustering_kmeans(vectors, n_clusters, nomeFichPickle):
     """Receive vectors and do the clustering in KMeans."""
-    kmeans = KMeans(n_clusters=n_clusters, init="k-means++", max_iter=500)
+    kmeans = KMeans(n_clusters=n_clusters, init="k-means++", max_iter=1000, random_state=2)
     kmeans.fit(vectors)
     labels_kmeans = kmeans.labels_
     centers_kmeans = kmeans.cluster_centers_
@@ -17,6 +18,11 @@ def clustering_kmeans(vectors, n_clusters):
         metrics.davies_bouldin_score(vectors, labels_kmeans),
     )
 
+    # Save the model to a file
+    with open(nomeFichPickle, 'wb') as f:
+      pickle.dump(kmeans, f)
+
+    print("labels_kmeans", labels_kmeans)
     return labels_kmeans, centers_kmeans
 
 
