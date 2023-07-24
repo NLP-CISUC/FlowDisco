@@ -1,15 +1,14 @@
 import numpy as np
 import pandas as pd
 from sklearn import metrics
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.metrics import pairwise_distances_argmin_min
 from keybert import KeyBERT
+from sklearn.feature_extraction.text import CountVectorizer
 
-def describe_clusters_kBERT(n_clusters, normalized_df, y_predicted, model, stopwords, ngrams):
+def describe_clusters_kBERT(n_clusters, normalized_df, y_predicted, stopwords, n_grams):
     docs = normalized_df["utterance"]
     doc = docs.to_string()
-    kw_model = KeyBERT(model=model)
-    keywords = kw_model.extract_keywords(doc, keyphrase_ngram_range=(1, ngrams), stop_words="english", highlight=False, top_n=n_clusters)
+    kw_model = KeyBERT()
+    keywords = kw_model.extract_keywords(doc, keyphrase_ngram_range=(1, n_grams), stop_words=stopwords, highlight=False, top_n=n_clusters)
 
     keywords_list= list(dict(keywords).keys())
 
@@ -18,7 +17,7 @@ def describe_clusters_kBERT(n_clusters, normalized_df, y_predicted, model, stopw
     df_teste["corpus"] = normalized_df["utterance"]
 
     list_clusters = []  # clusters
-    list_kBERT = []  # verbs
+    list_kBERT = []  # kBERT
 
     for p in range(n_clusters):
         predicted_df = df_teste[df_teste["predicted"] == p]  # mudar numeros
@@ -62,10 +61,10 @@ def describe_clusters_bigrams(n_clusters, normalized_df, y_predicted):
         c_vec = CountVectorizer(stop_words=None, ngram_range=(2, 2))
 
         # matrix of ngrams
-        ngrams = c_vec.fit_transform(df_corpus["docs_in_cluster"].astype('U'))
+        n_grams = c_vec.fit_transform(df_corpus["docs_in_cluster"].astype('U'))
 
         # count frequency of ngrams
-        count_values = ngrams.toarray().sum(axis=0)
+        count_values = n_grams.toarray().sum(axis=0)
 
         # list of ngrams
         vocab = c_vec.vocabulary_
@@ -82,19 +81,18 @@ def describe_clusters_bigrams(n_clusters, normalized_df, y_predicted):
     )  # handle repeated labelled
 
     df_labels = pd.concat([df1, df2], axis=1)
-
     print("Cluster Describe Bigrams")
     print(df_labels)
+
     return df_labels
 
-
 def describe_clusters_verbs(nlp, n_clusters, normalized_df, y_predicted):
-    df_teste = normalized_df.copy()  # utterance and y_predicted
+    df_teste = normalized_df.copy()
     df_teste["predicted"] = y_predicted
 
-    df_teste["utterance"] = df_teste["utterance"].astype(str)  
-    list_clusters = []  # clusters
-    list_verbs = []  # verbs
+    df_teste["utterance"] = df_teste["utterance"].astype(str)
+    list_clusters = []
+    list_verbs = []
     list_sintagmas = []
 
     for utt in list(df_teste["utterance"]):
@@ -102,7 +100,6 @@ def describe_clusters_verbs(nlp, n_clusters, normalized_df, y_predicted):
         sintagma = " "
         for token in doc:
             if token.text[0] >= 'A' and token.text[0] <= 'z' or token.text[0] == '@':
-                
                 if token.dep_ == 'ROOT':
                     sintagma = sintagma + " " + token.lemma_
                     for child in token.children:
@@ -117,35 +114,37 @@ def describe_clusters_verbs(nlp, n_clusters, normalized_df, y_predicted):
 
     df_teste["utterance"] = list_sintagmas
 
-    # remove white space, with this verbs technic happen to much
     df_teste["utterance"].replace(" ", np.nan, inplace=True)
     df_teste.dropna()
 
     for p in range(n_clusters):
-        predicted_df = df_teste[df_teste['predicted'] == p]  # mudar numeros
+        predicted_df = df_teste[df_teste['predicted'] == p]
 
         corpus = predicted_df['utterance']
 
         df_corpus = pd.DataFrame(corpus)
         df_corpus.columns = ['docs_in_cluster']
 
-        # count frequency of verbs
-        count_values = df_corpus.value_counts().index.tolist()[0]
+        # Verificar se a lista não está vazia antes de aceder o primeiro elemento
+        count_values = df_corpus.value_counts().index.tolist()
+        if count_values:
+            count_values = count_values[0][0]
+        else:
+            count_values = "N/A"
 
         list_clusters.append(f"Cluster {p}")
-        list_verbs.append(count_values[0])
+        list_verbs.append(count_values)
 
     df1 = pd.DataFrame(list_clusters, columns=["clusters"])
     df2 = pd.DataFrame(list_verbs, columns=["labels"])
     df2["labels"] = df2["labels"].str.cat(
         df2.groupby("labels").cumcount().astype(str).str.replace("0", ""), sep=" "
-    )  # handle repeated labelled
+    )
 
     df_labels = pd.concat([df1, df2], axis=1)
 
     print("Cluster Describe Verbs")
     print(df_labels)
-
     return df_labels
 	
 def describe_clusters_closest(normalized_df, y_predicted, vectors, centers, n_clusters):

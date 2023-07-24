@@ -44,7 +44,7 @@ def traverse(dataframe, threshold, InputGraph, df_final):
             flag = 0
             for j in dataframe.loc[i]:
                 if j > threshold:
-                    print(i,"->", dataframe.columns[k], "weight ",j)
+                    #print(i,"->", dataframe.columns[k], "weight ",j)
                     if "sentiment" in df_final.columns:
                         InputGraph.add_edge(i,dataframe.columns[k],weight=j, label=j, sentiment=df_final.iloc[k]['avg_sentiment'])
                     else:
@@ -63,7 +63,7 @@ def traverse(dataframe, threshold, InputGraph, df_final):
 def generate_markov_chain_separately(n_clusters_user: int, n_clusters_system: int, matrix: pd.DataFrame, df_final) -> nx.MultiDiGraph:
     n_clustersBoth = n_clusters_user + n_clusters_system
     G = nx.MultiDiGraph()
-    threshold = 0.10  # set the threshold value
+    threshold = 0.05  # set the threshold value
 
     visited=traverse(matrix, threshold, G, df_final)
     print(G)
@@ -92,7 +92,7 @@ def generate_markov_chain_separately(n_clusters_user: int, n_clusters_system: in
         if node in matrix.columns[:n_clusters_user]:  # nodes for user
             colors.append('turquoise')
         elif node in matrix.columns[n_clusters_user:n_clustersBoth]:  # nodes for system
-            colors.append('#04099C')
+            colors.append('blue')
         else:  # remaining nodes are blue
             colors.append('orange')
     # Create a dictionary of Graphviz node attributes with the colors

@@ -6,7 +6,7 @@ import click
 import pandas as pd
 
 from plataformateste import graphs
-from plataformateste.platform import run_test
+from plataformateste.platform import run_test_evaluation
 
 DATA_FOLDER = Path(__file__).parent.parent / "data"
 RESULTS_FOLDER = Path(__file__).parent.parent / "results"
@@ -32,7 +32,7 @@ def main(
 
     df = pd.read_csv(DATA_FOLDER / data_filename, on_bad_lines="skip", sep=";")
 
-    graph = run_test(
+    graph = run_test_evaluation(
         df, package, representation, labels_type, n_clusters, n_grams, MODEL_CACHE_FOLDER
     )
 
