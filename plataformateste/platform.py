@@ -658,7 +658,41 @@ def run_test(
                line = line + 1
 
                df_final.loc[df_final.n_clusters_final == n, 'avg_sentiment'] = avg_sent
-           print(df_final.head(10))
+               
+         #Add utterances if the Speaker is not interspersed
+         to_delete = []
+
+         for index, row in df_final.iterrows():
+             if index == 0:
+                 continue      
+            
+             if row['Speaker'] == df_final.iloc[index -1]['Speaker']:
+                 anterior = df_final.iloc[index-1]['utterance']
+                 atual = row['utterance']
+
+                 nova = anterior + "\n" + atual
+
+                 to_delete.append(index - 1)
+
+                 df_final.loc[index, ['utterance']] = nova
+
+         df_final.drop(to_delete, inplace=True)
+         df_final.reset_index(inplace=True, drop=True)
+
+         t_id = 1
+
+         for index, row in df_final.iterrows():
+             if index == 0:
+                 df_final.loc[index, ['turn_id']] = 0
+                 continue
+            
+             if row['dialogue_id'] == df_final.iloc[index -1]['dialogue_id']:
+                 df_final.loc[index, ['turn_id']] = t_id
+                 t_id +=1
+
+             if row['dialogue_id'] != df_final.iloc[index -1]['dialogue_id']:
+                 df_final.loc[index, ['turn_id']] = 0
+                 t_id = 1
        
         # Find the sum of each row
         row_sums = occurrence_matrix.sum(axis=1)
