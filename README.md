@@ -41,7 +41,7 @@ To generate the PDF Markov flow:
 2. Run the command in terminal: python -m plataformateste.generate_pdf_markov results/FILE_NAME.dot
 
 # How to cite
-A [paper](https://arxiv.org/abs/2405.01403) proposing an innovative approach to unsupervised discovery of dialogue flows from conversation histories and an automatic validation metric was presented at the 23rd International Conference on Hybrid Intelligent Systems (HIS 2023).
+A [paper](https://arxiv.org/abs/2405.01403) proposing an innovative approach to unsupervised discovery of dialogue flows from conversation history and an automatic validation metric was presented at the 23rd International Conference on Hybrid Intelligent Systems (HIS 2023).
 
 ```
 @misc{ferreira2024unsupervised,
