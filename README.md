@@ -41,4 +41,17 @@ To generate the PDF Markov flow:
 2. Run the command in terminal: python -m plataformateste.generate_pdf_markov results/FILE_NAME.dot
 
 # How to cite
-Patrícia Ferreira, Daniel Martins, Ana Alves, Catarina Silva, and Hugo Gonçalo Oliveira. 2024. Unsupervised flow discovery from task-oriented dialogues. Preprint, arXiv:2405.01403.
+A [paper](https://arxiv.org/abs/2405.01403) proposing an innovative approach to unsupervised discovery of dialogue flows from conversation histories and an automatic validation metric was presented at the 23rd International Conference on Hybrid Intelligent Systems (HIS 2023).
+
+```
+@misc{ferreira2024unsupervised,
+      title={Unsupervised Flow Discovery from Task-oriented Dialogues}, 
+      author={Patrícia Ferreira and Daniel Martins and Ana Alves and Catarina Silva and Hugo Gonçalo Oliveira},
+      year={2024},
+      eprint={2405.01403},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
+}
+```
+
+
