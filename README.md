@@ -44,13 +44,12 @@ To generate the PDF Markov flow:
 A [paper](https://arxiv.org/abs/2405.01403) proposing an innovative approach to unsupervised discovery of dialogue flows from conversation history and an automatic validation metric was presented at the 23rd International Conference on Hybrid Intelligent Systems (HIS 2023).
 
 ```
-@misc{ferreira2024unsupervised,
-      title={Unsupervised Flow Discovery from Task-oriented Dialogues}, 
-      author={Patrícia Ferreira and Daniel Martins and Ana Alves and Catarina Silva and Hugo Gonçalo Oliveira},
-      year={2024},
-      eprint={2405.01403},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL}
+@inproceedings{ferreira2023unsupervised,
+    title = {Unsupervised Flow Discovery from Task-oriented Dialogues},
+    author = {Patrícia Ferreira and Daniel Martins and Ana Alves and Catarina Silva and Hugo {Gonçalo~Oliveira}},
+    booktitle = {Proceedings of 23nd International Conference on Hybrid Intelligent Systems (HIS 2023)},
+    year = {2023}
+    publisher = {Springer}
 }
 ```
 
