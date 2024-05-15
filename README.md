@@ -39,3 +39,6 @@ To generate the PDF Markov flow:
 
 1. Install graphviz and pygraphviz (pip install graphviz, e.g.) - only once
 2. Run the command in terminal: python -m plataformateste.generate_pdf_markov results/FILE_NAME.dot
+
+## Papers
+Patrícia Ferreira, Daniel Martins, Ana Alves, Catarina Silva, and Hugo Gonçalo Oliveira. 2024. Unsupervised flow discovery from task-oriented dialogues. Preprint, arXiv:2405.01403.
