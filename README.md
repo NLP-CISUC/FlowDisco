@@ -1,39 +1,16 @@
 # FlowDisco
-
-The dataset needs to have initially a turn_id (an integer number), utterance and a speaker (only if we want to split between user and system) for each utterance. If you have dialogue_id it has to be an integer and sequential (0, 1, 2, 3, ...).
-
-Put both when there is no separation of user and system and both_separetely when this separation is made (default = both_separately).
-
-## First Step
-
-The first step is to set the parameters to the values we deem appropriate.
-These values are set in the CMD of the Dockerfile where each argument (numbered)
-contains only one value:
-
-1. package of the Spacy library (--package):
-    + en_core_web_sm;
-    + en_core_web_md (default value);
-    + en_core_web_lg.
-2. vector representation (--representation):
-    + tfidf;
-    + word2vec;
-    + sentenceTransformer (default value).
-3. label type (--labelsType):
-    + bigrams (default value);
-    + verbs;
-    + kBERT.
-4. Number of clusters manually entered (--nClusters):
-    + integer value.
+The FlowDisco repository contains:
+- **Data folder**: This folder includes data from two different datasets (Schema-Guided Dialogue (SGD) - with dialogue acts (DAs) and intents, and Emowoz). This setup can be applied to any set of written/transcribed dialogues, in any language or domain. The dataset must initially have the columns "turn_id" (an integer) or "dialogue_id" (a sequential integer - 0,1,2,3,...), "utterance," and the "speaker" of each expression. Use "both" when there is no separation of user and system, and "both_separately" when this separation is made (default = both_separately).
+- **FlowDisco folder**: This folder contains the code for the automatic discovery of dialogue flows from a history of conversations. This approach follows three main steps where the utterances are (i) represented in a vector space, (ii) grouped according to their semantic similarity, and (iii) the discovered clusters, which can be seen as dialogue states, are used as vertices in a transition graph. We propose an automatic measure for computing the extent to which the transitions in the test portion of the dataset align with the flows discovered from the training portion.
+- **Docker files**: The parameters with values we consider appropriate are defined in the CMD of the Dockerfile, where each argument contains only one value.
 
 ## Start the service - commands
-
 To start the service locally, we have to use two commands:
 
 1. docker compose build platform-uplink
 2. docker compose run platform-uplink
 
 ## Generate the PDF Markov flow
-
 After running the code, we see that the .dot file has been added to the 'results' folder ;
 To generate the PDF Markov flow:
 
