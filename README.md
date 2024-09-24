@@ -36,6 +36,7 @@ A [paper](https://arxiv.org/abs/2405.01403) proposing an innovative approach to 
 
 This paper presents a generic approach to dialogue flow discovery, using clustering techniques to identify dialogue states and state transitions, as well as analyzing the prevailing sentiment. The approach aims to enhance interpretability and provide support to artificial agents in customer support scenarios. Below is the corresponding BibTeX:
 
+```
 @inproceedings{ferreira-etal-2024-sentiment,
     title = "Sentiment-Aware Dialogue Flow Discovery for Interpreting Communication Trends",
     author = "Ferreira, Patr{\'\i}cia Sofia Pereira  and
@@ -60,3 +61,4 @@ This paper presents a generic approach to dialogue flow discovery, using cluster
     pages = "274--288",
     abstract = "Customer-support services increasingly rely on automation, whether fully or with human intervention. Despite optimising resources, this may result in mechanical protocols and lack of human interaction, thus reducing customer loyalty. Our goal is to enhance interpretability and provide guidance in communication through novel tools for easier analysis of message trends and sentiment variations. Monitoring these contributes to more informed decision-making, enabling proactive mitigation of potential issues, such as protocol deviations or customer dissatisfaction. We propose a generic approach for dialogue flow discovery that leverages clustering techniques to identify dialogue states, represented by related utterances. State transitions are further analyzed to detect prevailing sentiments. Hence, we discover sentiment-aware dialogue flows that offer an interpretability layer to artificial agents, even those based on black-boxes, ultimately increasing trustworthiness. Experimental results demonstrate the effectiveness of our approach across different dialogue datasets, covering both human-human and human-machine exchanges, applicable in task-oriented contexts but also to social media, highlighting its potential impact across various customer-support settings.",
 }
+```
