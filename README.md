@@ -15,7 +15,7 @@ This notebook contains the code for the automatic discovery of dialogue flows fr
 └── README.md                               # Project description file
 ```
 
-# How to cite
+## How to cite
 This project was presented in two scientific papers, both proposing innovative approaches to dialogue flow discovery. Below are the BibTeX references for the two papers.
 
 ### Paper 1: **Unsupervised Flow Discovery from Task-oriented Dialogues**
