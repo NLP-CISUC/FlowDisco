@@ -1,18 +1,8 @@
 # FlowDisco 
 This notebook contains the code for the automatic discovery of dialogue flows from a history of conversations. This approach follows three main steps where the utterances are (i) represented in a vector space, (ii) grouped according to their semantic similarity, and (iii) the discovered clusters, which can be seen as dialogue states, are used as vertices in a transition graph. We propose an automatic measure to compute the extent to which the transitions in the test portion of the dataset align with the flows discovered in the training portion. The flow can also be enriched with the sentiment of the interlocutors. We propose metrics aiming at quantifying key aspects in customer-support flows, thus enabling more objective comparison, e.g., between different entities or agents, and providing more detailed insights into the interactions.
 
-## Start the service - commands
-To start the service locally, we have to use two commands:
-
-1. docker compose build platform-uplink
-2. docker compose run platform-uplink
-
-## Generate the PDF Markov flow
-After running the code, we see that the .dot file has been added to the 'results' folder ;
-To generate the PDF Markov flow:
-
-1. Install graphviz and pygraphviz (pip install graphviz, e.g.) - only once
-2. Run the command in terminal: python -m plataformateste.generate_pdf_markov results/FILE_NAME.dot
+## Repository Structure
+. ├── datasets/ │ ├── MultiWOZ_DAs_test.xlsx # Test dataset with dialogues without sentiment │ ├── MultiWOZ_DAs_train.xlsx # Training dataset with dialogues without sentiment │ ├── twitter_final_teste.xlsx # Test dataset with dialogues with sentiment │ ├── twitter_final_teste_sem_sent.xlsx # Test dataset with dialogues without sentiment │ ├── twitter_final_treino.xlsx # Training dataset with dialogues with sentiment │ └── twitter_final_treino_sem_sent.xlsx # Training dataset with dialogues without sentiment ├── FlowDisco.ipynb # Colab notebook with the implemented code └── README.md # Project description file
 
 # How to cite
 This project was presented in two scientific papers, both proposing innovative approaches to dialogue flow discovery. Below are the BibTeX references for the two papers.
