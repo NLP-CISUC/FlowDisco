@@ -15,6 +15,51 @@ This notebook contains the code for the automatic discovery of dialogue flows fr
 └── README.md                               # Project description file
 ```
 
+### Datasets
+The datasets are located in the `data/` folder and should have the following column format:
+
+- **turn_id**: Unique identifier for each turn in the dialogue.
+- **dialogue_id**: Identifier of the dialogue to which the utterance belongs.
+- **speaker**: Identifier of the speaker (e.g., `Speaker 1`, `Speaker 2`).
+- **utterance**: The sentence spoken by the speaker in that turn.
+
+#### Datasets with Sentiment
+If we want to include sentiment in the flows, the dataset must have the following column:
+- **Median_Binary**: Binary sentiment calculated for each *utterance* (1 for non-negative, 0 for negative).
+
+## Analysis Notebook
+The `FlowDisco.ipynb` file is a Colab notebook that contains the code necessary to perform the following tasks:
+
+1. **Utterance Representation**: Conversion of utterances into vectors using *embedding* techniques.
+2. **Clustering**: Grouping of utterances into clusters based on their vector representations.
+3. **Labelling**: Labelling of clusters to identify dialogue patterns.
+4. **Sentiment Analysis**: If the dataset includes the `Median_Binary` column, sentiment is incorporated into the dialogue flow analysis.
+5. **Flow Discovery**: Identification of dialogue flow patterns between different dialogue states.
+
+### How to Run
+1. In the "Sentence Transformers Models" section:
+   - Define the language of the stopwords to be used (English or Portuguese).
+   - Choose the sentence transformer model (variable `MODEL_ML`) to be used to convert utterances into vectors.
+
+2. In the "Parameters" section:
+   - Set the training dataset (variable `filename`) and the test dataset (variable `filename_test`).
+   - Choose the clustering algorithm to be used (variable `algorithm`).
+   - Define the labelling method to be used (variable `labelling`).
+   - Specify the metric to optimize (variable `metric_to_optimize`).
+   - Choose the threshold value for flow simplification (variable `threshold`).
+   - Set the number of trials for Optuna (variable `n_trials`).
+   - Specify the number of previous utterances to consider for context (variable `id_max`).
+
+3. After adjusting the parameters above, run the remaining cells.
+
+- Libraries used in the notebook:
+  - `numpy`
+  - `pandas`
+  - `sklearn`
+  - `matplotlib`
+  - `seaborn`
+  - Others can be found in the first cell of the notebook.
+
 ## How to cite
 This project was presented in two scientific papers, both proposing innovative approaches to dialogue flow discovery. Below are the BibTeX references for the two papers.
 
