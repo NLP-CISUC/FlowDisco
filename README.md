@@ -4,6 +4,19 @@ This notebook contains the code for the automatic discovery of dialogue flows fr
 ## Repository Structure
 . ├── datasets/ │ ├── MultiWOZ_DAs_test.xlsx # Test dataset with dialogues without sentiment │ ├── MultiWOZ_DAs_train.xlsx # Training dataset with dialogues without sentiment │ ├── twitter_final_teste.xlsx # Test dataset with dialogues with sentiment │ ├── twitter_final_teste_sem_sent.xlsx # Test dataset with dialogues without sentiment │ ├── twitter_final_treino.xlsx # Training dataset with dialogues with sentiment │ └── twitter_final_treino_sem_sent.xlsx # Training dataset with dialogues without sentiment ├── FlowDisco.ipynb # Colab notebook with the implemented code └── README.md # Project description file
 
+```
+.
+├── datasets/
+│   ├── MultiWOZ_DAs_test.xlsx   # Conjunto de dados de teste com diálogos sem sentimento
+│   ├── MultiWOZ_DAs_train.xlsx   # Conjunto de dados de treino com diálogos sem sentimento
+│   ├── twitter_final_teste.xlsx   # Conjunto de dados de teste com diálogos com sentimento
+│   ├── twitter_final_teste_sem_sent.xlsx   # Conjunto de dados de teste com diálogos sem sentimento
+│   ├── twitter_final_treino.xlsx   # Conjunto de dados de treino com diálogos com sentimento
+│   └── twitter_final_treino_sem_sent.xlsx # Conjunto de dados de treino com diálogos sem sentimento
+├── FlowDisco.ipynb            # Notebook Colab com o código feito
+└── README.md                          # Documento de descrição do projeto
+```
+
 # How to cite
 This project was presented in two scientific papers, both proposing innovative approaches to dialogue flow discovery. Below are the BibTeX references for the two papers.
 
