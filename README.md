@@ -43,12 +43,12 @@ The `FlowDisco.ipynb` file is a Colab notebook that contains the code necessary 
 
 2. In the "Parameters" section:
    - Set the training dataset (variable `filename`) and the test dataset (variable `filename_test`).
-   - Choose the clustering algorithm to be used (variable `algorithm`).
-   - Define the labelling method to be used (variable `labelling`).
-   - Specify the metric to optimize (variable `metric_to_optimize`).
-   - Choose the threshold value for flow simplification (variable `threshold`).
-   - Set the number of trials for Optuna (variable `n_trials`).
-   - Specify the number of previous utterances to consider for context (variable `id_max`).
+   - Choose the clustering algorithm to be used (variable `algorithm`). Possible values: 'kmeans' and 'dbscan'. 
+   - Define the labelling method to be used (variable `labelling`). Possible values: 'verbs', 'keybert',  'closest' and 'llm'.
+   - Specify the metric to optimize (variable `metric_to_optimize`). Possible values: 'silhouette' and 'vmeasure'.
+   - Choose the threshold value for flow simplification (variable `threshold`). Range: 0 (min) to 0.20 (max).
+   - Set the number of trials for Optuna (variable `n_trials`). Range: 1 (min) to 100 (max).
+   - Specify the number of previous utterances to consider for context (variable `id_max`). Range: 1 (min) to N (max), where N depends on the dataset size. If id_max is 1, only the current utterance is considered; if 2, both the current and the previous one are used, and so on.
 
 3. After adjusting the parameters above, run the remaining cells.
 
