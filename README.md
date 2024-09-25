@@ -2,19 +2,17 @@
 This notebook contains the code for the automatic discovery of dialogue flows from a history of conversations. This approach follows three main steps where the utterances are (i) represented in a vector space, (ii) grouped according to their semantic similarity, and (iii) the discovered clusters, which can be seen as dialogue states, are used as vertices in a transition graph. We propose an automatic measure to compute the extent to which the transitions in the test portion of the dataset align with the flows discovered in the training portion. The flow can also be enriched with the sentiment of the interlocutors. We propose metrics aiming at quantifying key aspects in customer-support flows, thus enabling more objective comparison, e.g., between different entities or agents, and providing more detailed insights into the interactions.
 
 ## Repository Structure
-. ├── datasets/ │ ├── MultiWOZ_DAs_test.xlsx # Test dataset with dialogues without sentiment │ ├── MultiWOZ_DAs_train.xlsx # Training dataset with dialogues without sentiment │ ├── twitter_final_teste.xlsx # Test dataset with dialogues with sentiment │ ├── twitter_final_teste_sem_sent.xlsx # Test dataset with dialogues without sentiment │ ├── twitter_final_treino.xlsx # Training dataset with dialogues with sentiment │ └── twitter_final_treino_sem_sent.xlsx # Training dataset with dialogues without sentiment ├── FlowDisco.ipynb # Colab notebook with the implemented code └── README.md # Project description file
-
 ```
 .
-├── datasets/
-│   ├── MultiWOZ_DAs_test.xlsx   # Conjunto de dados de teste com diálogos sem sentimento
-│   ├── MultiWOZ_DAs_train.xlsx   # Conjunto de dados de treino com diálogos sem sentimento
-│   ├── twitter_final_teste.xlsx   # Conjunto de dados de teste com diálogos com sentimento
-│   ├── twitter_final_teste_sem_sent.xlsx   # Conjunto de dados de teste com diálogos sem sentimento
-│   ├── twitter_final_treino.xlsx   # Conjunto de dados de treino com diálogos com sentimento
-│   └── twitter_final_treino_sem_sent.xlsx # Conjunto de dados de treino com diálogos sem sentimento
-├── FlowDisco.ipynb            # Notebook Colab com o código feito
-└── README.md                          # Documento de descrição do projeto
+├── data/
+│   ├── MultiWOZ_DAs_test.xlsx   # Test dataset with dialogues without sentiment
+│   ├── MultiWOZ_DAs_train.xlsx   # Training dataset with dialogues without sentiment
+│   ├── twitter_final_teste.xlsx   # Test dataset with dialogues with sentiment
+│   ├── twitter_final_teste_sem_sent.xlsx   # Test dataset with dialogues without sentiment
+│   ├── twitter_final_treino.xlsx   # Training dataset with dialogues with sentiment
+│   └── twitter_final_treino_sem_sent.xlsx # Training dataset with dialogues without sentiment
+├── FlowDisco.ipynb            # Colab notebook with the implemented code
+└── README.md                          # Project description file
 ```
 
 # How to cite
