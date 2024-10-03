@@ -48,6 +48,9 @@ The `FlowDisco.ipynb` file is a Colab notebook that contains the code necessary 
    - Specify the metric to optimize (variable `metric_to_optimize`). Possible values: 'silhouette' and 'vmeasure'.
    - Choose the threshold value for flow simplification (variable `threshold`). Range: 0 (min) to 0.20 (max).
    - Set the number of trials for Optuna (variable `n_trials`). Range: 1 (min) to 100 (max).
+   - Define whether to show the count of utterances per cluster in the labels (variable `count_utterances_label`). Possible values: True (shows the number of utterances per cluster in labels) or False (no count shown).
+   - Set whether system transitions should include sentiment (variable sentiment_system). Possible values: True (system transitions have sentiment-based color) or False (system transitions appear in black).
+   - Specify whether to include sentiment in the flow (variable sentiment_in_flow). Possible values: True (sentiment is reflected in flow colors) or False (sentiment is not included).
    - Specify the number of previous utterances to consider for context (variable `id_max`). Range: 1 (min) to N (max), where N depends on the dataset size. If id_max is 1, only the current utterance is considered; if 2, both the current and the previous one are used, and so on.
 
 3. After adjusting the parameters above, run the remaining cells.
