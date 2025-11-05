@@ -34,9 +34,7 @@ Original file is located at
 !pip install -U langchain-community
 !pip install bertopic
 !pip install Levenshtein
-
 !pip install --upgrade pandas pandasai
-
 !pip install torch==2.1.0 torchvision==0.16.0
 
 import pandas as pd
@@ -146,11 +144,11 @@ labelling = "kbert"
 #labelling = "llm"
 
 # Datasets de treino
-filename = "data/twitter_final_treino.xlsx"
+filename = "synthetic_data/S1_Positive_Quickly_Few_train.xlsx"
 #filename = "MultiWOZ_DAs_train.csv"
 
 # Datasets de teste
-filename_test = "data/twitter_final_teste.xlsx"
+filename_test = "synthetic_data/Positive_Quickly_Few_test.xlsx"
 #filename_test = "MultiWOZ_DAs_test.csv"
 
 # Métrica a otimizar
@@ -190,7 +188,7 @@ id_max = 1
 llm_url = "http://localhost:8080"
 
 # Validation
-val = {"validation":False, "val_filename":"data/24_TREINO.xlsx", "val_filename_test":"data/24_TESTE.xlsx", "val_model":"all-MiniLM-L6-v2"}
+val = {"validation":False, "val_filename":"synthetic_data/S1_Positive_Quickly_Few_train.xlsx", "val_filename_test":"synthetic_data/Positive_Quickly_Few_test.xlsx", "val_model":"all-MiniLM-L6-v2"}
 
 """# Funções
 
