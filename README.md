@@ -11,7 +11,11 @@ This notebook contains the code for the automatic discovery of dialogue flows fr
 │   ├── twitter_final_teste_sem_sent.xlsx   # Test dataset with dialogues without sentiment
 │   ├── twitter_final_treino.xlsx           # Training dataset with dialogues with sentiment
 │   └── twitter_final_treino_sem_sent.xlsx  # Training dataset with dialogues without sentiment
+├── synthetic_data/
+│   ├── 16 test subsets                     # Test dataset (MultiSynthiment) with synthetic dialogues
+│   ├── 16 train subsets                    # Training dataset (MultiSynthiment) with synthetic dialogues
 ├── FlowDisco.ipynb                         # Colab notebook with the implemented code
+├── FlowDisco_py.py                         # Python notebook with the implemented code
 └── README.md                               # Project description file
 ```
 
@@ -107,4 +111,7 @@ This paper presents a generic approach to dialogue flow discovery, using cluster
     pages = "274--288",
     abstract = "Customer-support services increasingly rely on automation, whether fully or with human intervention. Despite optimising resources, this may result in mechanical protocols and lack of human interaction, thus reducing customer loyalty. Our goal is to enhance interpretability and provide guidance in communication through novel tools for easier analysis of message trends and sentiment variations. Monitoring these contributes to more informed decision-making, enabling proactive mitigation of potential issues, such as protocol deviations or customer dissatisfaction. We propose a generic approach for dialogue flow discovery that leverages clustering techniques to identify dialogue states, represented by related utterances. State transitions are further analyzed to detect prevailing sentiments. Hence, we discover sentiment-aware dialogue flows that offer an interpretability layer to artificial agents, even those based on black-boxes, ultimately increasing trustworthiness. Experimental results demonstrate the effectiveness of our approach across different dialogue datasets, covering both human-human and human-machine exchanges, applicable in task-oriented contexts but also to social media, highlighting its potential impact across various customer-support settings.",
 }
-```
+
+### Paper 3: **UnHIDE: A Novel Framework for Unsupervised Human-Interpretable Dialogue Exploration**
+We introduce UnHIDE, a novel, unsupervised framework for Human-Interpretable Dialogue Exploration. UnHIDE is designed to support human understanding of large collections of dialogues by surfacing interpretable structures and trends. It operates in three stages: (1) utterance clustering to group semantically similar dialogue turns, (2) flow discovery to build dialogue trajectories based on these clusters, and (3) the computation of interpretable metrics to analyze flow complexity, sentiment progression, and response times.
+We evaluate UnHIDE using a newly-created, automatically-generated, task-oriented dialogue dataset, where dialogue length, sentiment dynamics, and timing are systematically varied. This paper was accepted at the IEEE Access Journal.
