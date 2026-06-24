@@ -4,17 +4,8 @@ This notebook contains the code for the automatic discovery of dialogue flows fr
 ## Repository Structure
 ```
 .
-├── data/
-│   ├── MultiWOZ_DAs_test.xlsx              # Test dataset with dialogues without sentiment
-│   ├── MultiWOZ_DAs_train.xlsx             # Training dataset with dialogues without sentiment
-│   ├── twitter_final_teste.xlsx            # Test dataset with dialogues with sentiment
-│   ├── twitter_final_teste_sem_sent.xlsx   # Test dataset with dialogues without sentiment
-│   ├── twitter_final_treino.xlsx           # Training dataset with dialogues with sentiment
-│   └── twitter_final_treino_sem_sent.xlsx  # Training dataset with dialogues without sentiment
-├── synthetic_data/
-│   ├── 16 test subsets                     # Test dataset (MultiSynthiment) with synthetic dialogues
-│   ├── 16 train subsets                    # Training dataset (MultiSynthiment) with synthetic dialogues
-├── FlowDisco.ipynb                         # Colab notebook with the implemented code
+├── data\
+├── synthetic_data\
 ├── FlowDisco_py.py                         # Python notebook with the implemented code
 └── README.md                               # Project description file
 ```
