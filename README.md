@@ -5,15 +5,6 @@ Beyond this core methodology, FlowDisco introduces robust quantitative evaluatio
 
 Finally, the entire ecosystem is wrapped in an interactive web application. This interface empowers users to dynamically explore the generated graphs, adjust transition probability thresholds, filter by specific speakers, and deeply inspect the raw utterances comprising each dialogue state.
 
-## Repository Structure
-```
-.
-├── data\
-├── synthetic_data\
-├── FlowDisco_py.py                         # Python notebook with the implemented code
-└── README.md                               # Project description file
-```
-
 ### Datasets
 The datasets are located in the `data/` folder and should have the following column format:
 
