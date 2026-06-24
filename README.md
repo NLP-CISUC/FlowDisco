@@ -112,6 +112,17 @@ This paper presents a generic approach to dialogue flow discovery, using cluster
     abstract = "Customer-support services increasingly rely on automation, whether fully or with human intervention. Despite optimising resources, this may result in mechanical protocols and lack of human interaction, thus reducing customer loyalty. Our goal is to enhance interpretability and provide guidance in communication through novel tools for easier analysis of message trends and sentiment variations. Monitoring these contributes to more informed decision-making, enabling proactive mitigation of potential issues, such as protocol deviations or customer dissatisfaction. We propose a generic approach for dialogue flow discovery that leverages clustering techniques to identify dialogue states, represented by related utterances. State transitions are further analyzed to detect prevailing sentiments. Hence, we discover sentiment-aware dialogue flows that offer an interpretability layer to artificial agents, even those based on black-boxes, ultimately increasing trustworthiness. Experimental results demonstrate the effectiveness of our approach across different dialogue datasets, covering both human-human and human-machine exchanges, applicable in task-oriented contexts but also to social media, highlighting its potential impact across various customer-support settings.",
 }
 
+```
 ### Paper 3: **UnHIDE: A Novel Framework for Unsupervised Human-Interpretable Dialogue Exploration**
 We introduce UnHIDE, a novel, unsupervised framework for Human-Interpretable Dialogue Exploration. UnHIDE is designed to support human understanding of large collections of dialogues by surfacing interpretable structures and trends. It operates in three stages: (1) utterance clustering to group semantically similar dialogue turns, (2) flow discovery to build dialogue trajectories based on these clusters, and (3) the computation of interpretable metrics to analyze flow complexity, sentiment progression, and response times.
 We evaluate UnHIDE using a newly-created, automatically-generated, task-oriented dialogue dataset, where dialogue length, sentiment dynamics, and timing are systematically varied. This paper was accepted at the IEEE Access Journal.
+@article{ferreira2025unhide,
+  title={UnHIDE: A Novel Framework for Unsupervised Human-Interpretable Dialogue Exploration},
+  author={Ferreira, Patr{\'\i}cia and Alves, Ana and Silva, Catarina and Oliveira, Hugo Gon{\c{c}}alo},
+  journal={IEEE Access},
+  volume={13},
+  pages={200001--200014},
+  year={2025},
+  publisher={IEEE}
+}
+```
