@@ -116,6 +116,7 @@ This paper presents a generic approach to dialogue flow discovery, using cluster
 ### Paper 3: **UnHIDE: A Novel Framework for Unsupervised Human-Interpretable Dialogue Exploration**
 We introduce UnHIDE, a novel, unsupervised framework for Human-Interpretable Dialogue Exploration. UnHIDE is designed to support human understanding of large collections of dialogues by surfacing interpretable structures and trends. It operates in three stages: (1) utterance clustering to group semantically similar dialogue turns, (2) flow discovery to build dialogue trajectories based on these clusters, and (3) the computation of interpretable metrics to analyze flow complexity, sentiment progression, and response times.
 We evaluate UnHIDE using a newly-created, automatically-generated, task-oriented dialogue dataset, where dialogue length, sentiment dynamics, and timing are systematically varied. This paper was accepted at the IEEE Access Journal.
+```
 @article{ferreira2025unhide,
   title={UnHIDE: A Novel Framework for Unsupervised Human-Interpretable Dialogue Exploration},
   author={Ferreira, Patr{\'\i}cia and Alves, Ana and Silva, Catarina and Oliveira, Hugo Gon{\c{c}}alo},
