@@ -112,4 +112,16 @@ We evaluate UnHIDE using a newly-created, automatically-generated, task-oriented
   year={2025},
   publisher={IEEE}
 }
+
+```
+### Paper 4: **Analyzing Debate Dynamics in the Portuguese Parliament with Dialogue Action Flows**
+Analyzing how large-scale multi-party dialogues shape collective behavior is a central challenge in computational linguistics. However, traditional text-based methods often overlook the complex, non-linear turn-taking dynamics defining these interactions. To address this gap, we propose a framework based on Dialogue Action Flows (DAFs) that integrates verbal utterances and non-verbal actions into a unified probabilistic representation of interactional behavior. Interactions are encoded as speaker-action states, forming a probabilistic DAF that reveals dominant behavioral trajectories and recurrent patterns. We validate this framework on five years of Portuguese Parliament debates. Analysis reveals systematic behavioral asymmetries driven by party roles: while government parties exhibit increasing alignment, opposition forces, particularly the radical wing, maintain persistently high conflict. Additionally, the rising volume of interactions across legislative years indicates a progressively heated environment. Overall, our framework provides a quantitative and interpretable approach for modeling polarization, alignment, and interactional dynamics in multi-party political discourse.
+```
+@inproceedings{ferreira2026analyzing,
+  title={Analyzing Debate Dynamics in the Portuguese Parliament with Dialogue Action Flows},
+  author={Ferreira, Patr{\'\i}cia and Alves, Ana and Silva, Catarina and Oliveira, Hugo Gon{\c{c}}alo},
+  booktitle={Proceedings of the 17th International Conference on Computational Processing of Portuguese (PROPOR 2026)-Vol. 1},
+  pages={369--379},
+  year={2026}
+}
 ```
