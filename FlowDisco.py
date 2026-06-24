@@ -8,11 +8,11 @@
 #source venv/bin/activate
 #rm -rf venv
 
-
+import os
+os.environ["PATH"] += os.pathsep + r'C:\Program Files\Graphviz\bin'
 import pandas as pd
 import pickle
 import nltk
-import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os, pickle
@@ -22,6 +22,7 @@ import spacy
 import numpy as np
 import statistics
 import seaborn as sns
+from bertopic import BERTopic
 import itertools
 from pathlib import Path
 import random
@@ -61,12 +62,16 @@ import optuna
 from optuna.storages import RDBStorage
 import graphviz
 from graphviz import Source
-from langchain.llms.ollama import Ollama
-import pickle
+#from langchain.llms.ollama import Ollama
+from langchain_community.llms import Ollama
 import matplotlib
 matplotlib.use('Agg')
 #import flask-cors
-import re
+import networkx.drawing.nx_pydot as nx_pydot
+import Levenshtein
+from itertools import islice
+import unicodedata
+
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -92,10 +97,7 @@ MODEL_ML = "paraphrase-multilingual-MiniLM-L12-v2"
 #MODEL_ML ="all-MiniLM-L12-v2"
 #MODEL_ML ="gtr-t5-large"
 
-
-# %% [markdown]
 # ### Parâmetros
-
 
 # Algoritmo
 algorithm = "kmeans"
@@ -113,7 +115,7 @@ labelling = "kbert"
 #labelling = "none"
 
 labelling_for_excel = [
-    #"kbert",
+    "kbert",
     #"llm",
     #"verbs",
     #"closest",
@@ -130,12 +132,14 @@ metric_to_optimize = "silhouette"
 #filename = "MRDA_train.csv"
 #filename = "Estado_Da_Nacao_21_julho_2021_falas_separadas.xlsx"
 #filename = "Estado_da_Nacao_2025_CERTO.xlsx"
-#filename = "Estado_Da_Nacao_17_julho_2025.xlsx"
+filename = "Estado_Da_Nacao_17_julho_2025.xlsx"
 #filename = "Estado_Da_Nacao_17_julho_2024.xlsx"
 #filename = "Estado_Da_Nacao_20_julho_2023.xlsx"
 #filename = "Estado_Da_Nacao_20_julho_2022.xlsx"
 #filename = "Estado_Da_Nacao_21_julho_2021.xlsx"
-filename = "24_TREINO.xlsx"
+#filename = "24_TREINO.xlsx"
+#filename = "DATASET_FINAL.xlsx"
+#filename = "dataset_short_paper_FINAL.xlsx"
 
 # Datasets de teste
 #filename_test = "DAs_test_emo.csv"
@@ -144,10 +148,13 @@ filename = "24_TREINO.xlsx"
 #filename_test = "Estado_Da_Nacao_20_julho_2023.xlsx"
 #filename_test = "Estado_Da_Nacao_20_julho_2022.xlsx"
 #filename_test = "Estado_Da_Nacao_21_julho_2021.xlsx"
-filename_test = "24_TESTE.xlsx"
+filename_test = "Estado_Da_Nacao_17_julho_2025.xlsx"
+#filename_test = "24_TESTE.xlsx"
+#filename_test = "DATASET_FINAL.xlsx"
+#filename_test = "dataset_short_paper_FINAL.xlsx"
 
-#GENERICO OU POLITICA
-TIPO_DATASET = "GENERICO"
+# Modos disponíveis: "GENERICO", "POLITICA" ou "POESIA"
+TIPO_DATASET = "POLITICA"
 
 #Valores de Threshold
 #threshold = [0, 0.05, 0.1, 0.15, 0.2]
@@ -158,6 +165,7 @@ beta = 1
 
 # Número de trials para o optuna
 n_trials = 5
+MAPA_SPEAKERS = {}
 
 #Se queremos colocar na label a contagem do número de utterances por cluster
 count_utterances_label = False
@@ -182,7 +190,9 @@ id_max = 1
 llm_url = "http://localhost:8080"
 
 #Diretoria
-diretoria = filename +'_'+ algorithm +'_'+ labelling +'_'+ metric_to_optimize +'_'+ str(threshold[0]) +'_'+ str(n_trials) +'_'+ str(datetime.now())
+#diretoria = filename +'_'+ algorithm +'_'+ labelling +'_'+ metric_to_optimize +'_'+ str(threshold[0]) +'_'+ str(n_trials) +'_'+ str(datetime.now())
+#diretoria = filename +'_'+ algorithm +'_'+ labelling +'_'+ metric_to_optimize +'_'+ str(threshold[0]) +'_'+ str(n_trials) +'_'+ str(datetime.now()).replace(':', '-')
+diretoria = f"Res_{algorithm}_{datetime.now().strftime('%H%M%S')}"
 os.makedirs('./Resultados/' + diretoria)
 #print (diretoria)
 
@@ -194,49 +204,51 @@ amount_speakers = 0
 others = True
 same_speakers = False
 ENTIDADES_A_PROCESSAR = {}
+BLOCO_MODERADOR = []
+BLOCO_GOVERNO_SPEAKERS = []
+INCLUIR_OUTROS = False
 
-#Dividir por categorias
-#ENTIDADES_A_PROCESSAR = {
-#    "Esquerda": ["BE", "PCP", "PEV", "L", "PS"],
-#    "Direita": ["IL", "PSD", "CDS-PP", "CH"],
-#    "Outros_Partidos": ["PAN", "JPP"]
-#}
+if TIPO_DATASET == "POLITICA":
+    #Dividir por categorias
+    ENTIDADES_A_PROCESSAR = {
+        "Esquerda": ["BE", "PCP", "PEV", "L", "PS"],
+        "Direita": ["IL", "PSD", "CDS-PP", "CH"],
+        "Outros_Partidos": ["PAN", "JPP"]
+    }
 
-# Meter só dois partidos
-# ENTIDADES_A_PROCESSAR = {
-#     "PS": ["PS"],
-#     "PSD": ["PSD"]
-# }
+    # Meter só dois partidos
+    #ENTIDADES_A_PROCESSAR = {
+    #    "PS": ["PS"],
+    #    "PSD": ["PSD"]
+    #}
 
-# Todos os partidos separados
-#ENTIDADES_A_PROCESSAR = {
-#    "PS": ["PS"], 
-#    "PSD": ["PSD"], 
-#    "CH": ["CH"], 
-#    "IL": ["IL"],
-#    "BE": ["BE"], 
-#    "PCP": ["PCP"], 
-#    "L": ["L"], 
-#    "PAN": ["PAN"], 
-#    "CDS-PP": ["CDS-PP"], 
-#    "PEV": ["PEV"], 
-#    "JPP": ["JPP"]
-#}
+    # Todos os partidos separados
+    #ENTIDADES_A_PROCESSAR = {
+    #    "PS": ["PS"], 
+    #    "PSD": ["PSD"], 
+    #    "CH": ["CH"], 
+    #    "IL": ["IL"],
+    #    "BE": ["BE"], 
+    #    "PCP": ["PCP"], 
+    #    "L": ["L"], 
+    #    "PAN": ["PAN"], 
+    #    "CDS-PP": ["CDS-PP"], 
+    #    "PEV": ["PEV"], 
+    #    "JPP": ["JPP"]
+    #}
 
-# Governo
-#BLOCO_MODERADOR = ["Presidente"]
-#BLOCO_MODERADOR = ["Presidente", "Secretário", "Secretária"]
-#BLOCO_GOVERNO_SPEAKERS = ["Primeiro-Ministro", "Ministro", "Ministra"]
+    # Governo
+    #BLOCO_MODERADOR = ["Presidente"]
+    BLOCO_MODERADOR = ["Presidente", "Secretário", "Secretária"]
+    BLOCO_GOVERNO_SPEAKERS = ["Primeiro-Ministro", "Ministro", "Ministra"]
 
-# Se 'True', qualquer speaker que não esteja em ENTIDADES_A_PROCESSAR
-# será agrupado num único nó chamado "Outros".
-# Se 'False', eles serão simplesmente removidos do grafo.
-#INCLUIR_OUTROS = True
-
+    # Se 'True', qualquer speaker que não esteja em ENTIDADES_A_PROCESSAR
+    # será agrupado num único nó chamado "Outros".
+    # Se 'False', eles serão simplesmente removidos do grafo.
+    #INCLUIR_OUTROS = False
 
 n_nodes = 0
 
-# %%
 # Validation
 val = {"validation":False, "val_filename":"24_TREINO.xlsx", "val_filename_test":"24_TREINO.xlsx", "val_model":"all-MiniLM-L6-v2"}
 
@@ -253,7 +265,8 @@ def normalize_dataset(df_initial, regex=None, removeGreetings=None, speaker=None
     # Também normaliza as ações
     if "Tipo" in df.columns and "Ação" in df.columns:
         mask_acoes = df["Tipo"].astype(str).str.lower() == "ação"
-        df.loc[mask_acoes, "Ação"] = df.loc[mask_acoes, "Ação"].astype(str).str.lower().str.strip()
+        if mask_acoes.any():
+            df.loc[mask_acoes, "Ação"] = df.loc[mask_acoes, "Ação"].astype(str).str.lower().str.strip()
 
     # Padrões para substituição
     url_pattern = r"https?://\S+"
@@ -476,9 +489,7 @@ def silhouette_method(data, min_k, max_k, incr):
 
     return number_clusters
 
-# %% [markdown]
 # #### K-means
-
 # Função para treinar o modelo KMeans e guardar os resultados num ficheiro pickle
 def clustering_kmeans(vectors, n_clusters, nomeFichPickle, max_iters=2500):
     # Verifica se o modelo KMeans já foi treinado e guardado
@@ -506,7 +517,6 @@ def clustering_kmeans(vectors, n_clusters, nomeFichPickle, max_iters=2500):
 
 # ### Topic Modeling
 
-# %%
 def bertopic_modeling(utterances, model_ml, n_topics, min_topic_size):
     model = BERTopic(embedding_model=model_ml, nr_topics=n_topics)
     topics, probabilities = model.fit_transform(utterances)
@@ -1706,17 +1716,43 @@ def colorize_sentiment_v2(sentiment):
     # Converto RGBA para formato hexadecimal
     return "#{:02X}{:02X}{:02X}".format(int(rgba_color[0] * 255), int(rgba_color[1] * 255), int(rgba_color[2] * 255))
 
-# --- 2. CARREGAR DADOS ---
+
 if filename[-4:] == ".csv":
     dados = pd.read_csv(filename, sep=',')
 else:
     dados = pd.read_excel(filename)
 
+if TIPO_DATASET == "GENERICO":
+    MODELOS = ['gemma3:4b']
+    LINGUA = 'English'
+    TEMP = 0.8
+
+    modelo_limpo = MODELOS[0].replace(":", "-") 
+    NOME_DO_GRUPO = f'All Domains ({modelo_limpo} _ T={TEMP})'
+    FILTRO_EXTRA_COLUNA = 'Dominio'
+    FILTRO_EXTRA_VALOR = ['Desporto', 'Música', 'Cidades'] 
+
+    # Filtra pelas colunas que só existem no dataset LLM
+    dados = dados[
+        (dados['Modelo'].isin(MODELOS)) &
+        (dados['Lingua'] == LINGUA) &
+        (dados['Temperatura'] == TEMP)
+    ]
+
+    if FILTRO_EXTRA_COLUNA != "":
+        dados = dados[dados[FILTRO_EXTRA_COLUNA].isin(FILTRO_EXTRA_VALOR)]
+
+    # Sobrescreve o Speaker
+    dados['Speaker'] = NOME_DO_GRUPO
+
+# ==============================================================
+
+dados_test = dados.copy()
 print("Colunas disponíveis:", dados.columns.tolist())
 
 # Se o dataset não tiver a coluna 'Tipo', criamos uma e assumimos que é tudo 'fala'
 if "Tipo" not in dados.columns:
-    print("oluna 'Tipo' não encontrada. A criar coluna padrão (tudo = 'fala').")
+    print("coluna 'Tipo' não encontrada. A criar coluna padrão (tudo = 'fala').")
     dados["Tipo"] = "fala"
 
 # Se o dataset não tiver a coluna 'Ação', criamos vazia para não dar erro depois
@@ -1743,7 +1779,7 @@ print("----------------------------\n")
 normalized_df = normalize_dataset(dados, regex=True, removeGreetings=False, speaker='both')
 
 if TIPO_DATASET == "POLITICA":  
-    # 1. Detetar Ano no nome do ficheiro
+    # Detetar Ano no nome do ficheiro
     nome_ficheiro_lower = filename.lower()
     ano_detetado = re.search(r'(\d{4})', nome_ficheiro_lower)
 
@@ -1770,16 +1806,16 @@ if TIPO_DATASET == "POLITICA":
         incluir_outros=INCLUIR_OUTROS
     )
 
-    # 3. Filtrar
+    # Filtrar
     if not INCLUIR_OUTROS:
         normalized_df.dropna(subset=['Speaker'], inplace=True)
 
 else:
-    # 1. Limpar
+    # Limpar
     normalized_df['Speaker'] = normalized_df['Speaker'].astype(str).str.strip()
     normalized_df = normalized_df[~normalized_df['Speaker'].isin(['nan', 'NaN', 'None', '', 'float'])]
 
-    # 2. Mapear (Automaise -> SYSTEM, Cliente -> USER)
+    # Mapear (Automaise -> SYSTEM, Cliente -> USER)
     MAPA_GENERICO = {
         'Cliente': 'USER', 
         'User': 'USER',
@@ -1840,7 +1876,6 @@ print(normalized_df.head())
 normalized_df = normalize_dataset(normalized_df, regex=True, removeGreetings=False, speaker='both')
 
 
-# %%
 normalized_df_speaker= {}
 utterances_speaker= {}
 
@@ -1857,14 +1892,15 @@ acts = False
 if 'trueLabel' in normalized_df.columns:
     acts = True
 
-# ### Vetorização
+# Vetorização
 model_ml = SentenceTransformer(MODEL_ML, device='cpu')
 
 speaker_files = {}
 vectors_speaker={}
 
 for speaker in speakers:
-    speaker_files[speaker] = f'{MODEL_ML}_{algorithm}_{filename.split(".")[0]}_{metric_to_optimize}_{str(id_max)}_vectors_{speaker}.pkl'
+    #speaker_files[speaker] = f'{MODEL_ML}_{algorithm}_{filename.split(".")[0]}_{metric_to_optimize}_{str(id_max)}_vectors_{speaker}.pkl'
+    speaker_files[speaker] = f'vetores_{speaker}.pkl'
 
 if not all(os.path.exists(os.path.join('./Resultados/' + diretoria, file)) for file in speaker_files.values()):
     for speaker in speakers:
@@ -1949,7 +1985,7 @@ if labelling == "keywords":
         
         df_atual[coluna_alvo] = df_atual[coluna_alvo].fillna('Outros').astype(str).str.strip()
         
-        # 2. Transformar Categorias em Números
+        # 2. Transformar categorias em números
         codes, uniques = pd.factorize(df_atual[coluna_alvo])
         
         # 3. Guardar nas variáveis globais
@@ -2009,6 +2045,70 @@ else:
 
     elif metric_to_optimize == "NONE":
         pass
+
+def gerar_heatmap(matriz_df, diretorio_saida, nome_ficheiro, titulo="Transition Probability Matrix"):
+    """
+    Gera e guarda um Heatmap limpo e estético em inglês.
+    """
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+    import os
+    import pandas as pd
+
+    print(f"\nA gerar Heatmap: {nome_ficheiro}...")
+
+    # ADICIONAR ESTA LINHA: Fazer uma cópia para não estragar o grafo da interface!
+    matriz_plot = matriz_df.copy()
+
+    # 1. Limpar os nomes gigantes (Ficar só com o que está depois do "->")
+    clean_index = matriz_plot.index.to_series().apply(lambda x: str(x).split('->')[-1].strip())
+    clean_columns = matriz_plot.columns.to_series().apply(lambda x: str(x).split('->')[-1].strip())
+    
+    matriz_plot.index = clean_index
+    matriz_plot.columns = clean_columns
+
+    # 2. Filtrar linhas e colunas que sejam APENAS 0.00
+    matriz_plot = matriz_plot.loc[(matriz_plot > 0).any(axis=1)] 
+    matriz_plot = matriz_plot.loc[:, (matriz_plot > 0).any(axis=0)] 
+
+    if matriz_plot.empty:
+        print("Heatmap ignorado: A matriz ficou vazia após remover os zeros.")
+        return
+
+    # 3. Ajuste Dinâmico de Tamanho
+    tamanho_figura = max(8, len(matriz_plot.columns) * 0.8)
+    plt.figure(figsize=(tamanho_figura, tamanho_figura)) 
+    
+    # 4. Desenhar o Heatmap (Substituir matriz_df por matriz_plot)
+    ax = sns.heatmap(
+        matriz_plot, 
+        annot=True, 
+        fmt=".2f", 
+        cmap="Blues",
+        cbar_kws={'label': 'Transition Probability'},
+        linewidths=1,
+        linecolor='white',
+        annot_kws={"size": 10},
+        square=True
+    )
+    
+    # 5. Textos em Inglês
+    plt.title(titulo, fontsize=16, fontweight='bold', pad=20)
+    plt.xlabel("Target State", fontsize=13, fontweight='bold', labelpad=15)
+    plt.ylabel("Source State", fontsize=13, fontweight='bold', labelpad=15)
+    
+    # Rotação das labels para leitura perfeita
+    plt.xticks(rotation=45, ha='right', fontsize=11)
+    plt.yticks(rotation=0, fontsize=11)
+    
+    plt.tight_layout()
+    
+    # Guardar Ficheiro
+    caminho_completo = os.path.join('./Resultados', diretorio_saida, nome_ficheiro)
+    plt.savefig(caminho_completo, dpi=300, bbox_inches='tight', facecolor='white')
+    plt.close()
+    
+    print(f"Heatmap guardado com sucesso em: {caminho_completo}")
 
 # ==============================================================================
 # CÁLCULO DE MÉTRICAS
@@ -2383,9 +2483,7 @@ else:
     print(">>> Modo KEYWORDS detetado: O labelling automático (KeyBERT/LLM) foi ignorado.")
     print("    As labels usadas serão as categorias do Excel ('Cooperação', 'Conflito').")
 
-# ==============================================================================
 # CLUSTERING PARA AS AÇÕES
-# ==============================================================================
 print("A processar ações (Speaker + Ação)...")
 
 # 1. Carregar RAW data para garantir que temos os Speakers originais
@@ -2576,9 +2674,7 @@ if not df_todas_acoes.empty:
 print(f"Nó de início (SOD) ID: {SOD_NAME} | Rótulo: {SOD_LABEL.replace(chr(10), ' // ')}")
 print(f"Nó de fim (EOD) ID: {EOD_NAME} | Rótulo: {EOD_LABEL.replace(chr(10), ' // ')}")
 
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # CONSTRUIR GRAFO
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 # Garantir que os labels estejam na mesma ordem
 labels_type_speaker_ordered = {}
@@ -2742,6 +2838,28 @@ row_sums[row_sums == 0] = 1
 transition_matrix = np.divide(occurrence_matrix, row_sums[:, np.newaxis])
 matrix = pd.DataFrame(transition_matrix, index=names, columns=names)
 matrix = matrix.round(decimals = 2).fillna(0.00)
+
+# GERAÇÃO DOS HEATMAPS
+try:
+    gerar_heatmap(
+        matriz_df=matrix, 
+        diretorio_saida=diretoria, 
+        nome_ficheiro=f"Heatmap_Transitions_{filename.split('.')[0]}.png", 
+        titulo=f"Transition Probability Matrix"
+    )
+except Exception as e:
+    print(f"Erro ao gerar Heatmaps: {e}")
+    
+    # Heatmap das Ocorrências Absolutas (Quantas vezes aconteceu a transição)
+    matrix_ocorrencias = pd.DataFrame(occurrence_matrix, index=names, columns=names)
+    gerar_heatmap(
+        matriz_df=matrix_ocorrencias, 
+        diretorio_saida=diretoria, 
+        nome_ficheiro=f"Heatmap_Ocorrencias_{filename.split('.')[0]}.png", 
+        titulo=f"Matriz de Ocorrências Absolutas ({filename})"
+    )
+except Exception as e:
+    print(f"Erro ao gerar Heatmaps: {e}")
 
 # Verifica se existe coluna de sentimento em algum dos dataframes
 colunas_totais = pd.concat([df_final, df_acoes]).columns
@@ -3242,10 +3360,10 @@ def generate_markov_chain_separately(filename, n_clusters_speaker, matrix: pd.Da
     print("A aplicar cores de sentimento às transições...")
     
     for u, v, k, data in G.edges(keys=True, data=True):
-        # 1. Obter o sentimento da transição (criado no traverse)
+        # Obter o sentimento da transição (criado no traverse)
         sent = data.get('sentiment')
         
-        # 2. Se tiver sentimento válido, aplicar cor (Vermelho-Amarelo-Verde)
+        # Se tiver sentimento válido, aplicar cor (Vermelho-Amarelo-Verde)
         if sent is not None:
             try:
                 sent_float = float(sent)
@@ -3306,33 +3424,38 @@ def generate_markov_chain_separately(filename, n_clusters_speaker, matrix: pd.Da
 
         nx.set_node_attributes(G, {node: attrs})
 
-    # ==========================================================================
-
-    # Estatísticas
+    # ESTATÍSTICAS
     num_nodes = len(G.nodes)
     num_edges = G.number_of_edges()
-    max_possible_edges = num_nodes * (num_nodes - 1)
-    density = num_edges / max_possible_edges if max_possible_edges > 0 else 0
-    
+    density = nx.density(G)
+
     print(f"Número de nós: {num_nodes}")
     print(f"Número de arestas: {num_edges}")
-    print(f"Densidade do grafo: {density}")
+    print(f"Densidade do grafo: {density:.4f}")
+
+    # Guarda um ficheiro "metricas_densidade.txt" na pasta atual
+    with open("metricas_densidade.txt", "w", encoding="utf-8") as file:
+        file.write("--- ESTATÍSTICAS DA REDE ---\n")
+        file.write(f"Numero de nos: {num_nodes}\n")
+        file.write(f"Numero de arestas: {num_edges}\n")
+        file.write(f"Densidade do grafo: {density:.4f}\n\n")
+
+    # Outras Estatísticas 
     try:
         in_degree_centrality = nx.in_degree_centrality(G)
         out_degree_centrality = nx.out_degree_centrality(G)
         betweenness_centrality = nx.betweenness_centrality(G)
         closeness_centrality = nx.closeness_centrality(G)
-        strongly_connected_components = list(nx.strongly_connected_components(G))
-
-        # guardar
-        os.makedirs(os.path.join('./Resultados', diretoria), exist_ok=True)
-        with open(os.path.join('./Resultados', diretoria,'centrality_subset16.txt'), 'w', encoding='utf-8') as file:
-            file.write(f"In-degree: {in_degree_centrality}\n")
-            file.write(f"Out-degree: {out_degree_centrality}\n")
+        
+        # Anexa ao ficheiro que já criámos
+        with open("metricas_densidade.txt", "a", encoding="utf-8") as file:
+            file.write("--- CENTRALIDADES ---\n")
+            file.write("Calculadas com sucesso. (Podes imprimir aqui se precisares)\n")
+            
     except Exception as e:
         print(f"Aviso: Não foi possível calcular centralidades ({e})")
 
-    return G, n_nodes
+    return G, num_nodes
 
 def generate_markov_chain_separately_no(filename, n_clusters_speaker, matrix: pd.DataFrame, df_final, threshold, ACAO_SPEAKER_NAME, NOME_NODO_NA, SOD_NAME, EOD_NAME, SOD_LABEL, EOD_LABEL) -> nx.MultiDiGraph:
     print("entrei em generate_markov_chain_separately_no")
@@ -3423,7 +3546,7 @@ def generate_markov_chain_separately_no(filename, n_clusters_speaker, matrix: pd
             d = fim - ini
             duracao_str = f"{d//60}h {d%60}m"
 
-        # B. Estatísticas
+        # Estatísticas
         df_m = df_final.copy()
         
         def make_lbl(row):
@@ -3464,25 +3587,56 @@ def generate_markov_chain_separately_no(filename, n_clusters_speaker, matrix: pd
         ud_mean, ud_std = cf.mean(), cf.std(ddof=1) if D > 1 else 0
         ad_mean, ad_std = ca.mean(), ca.std(ddof=1) if D > 1 else 0
 
+        # --- NOVAS MÉTRICAS DE COMPORTAMENTO ---
+        # 1. Calcular Taxa de Repetição (Self-Loops)
+        num_self_loops = sum(1 for u, v in G.edges() if u == v)
+        taxa_self_loops = (num_self_loops / E) * 100 if E > 0 else 0.0
+
+        # 2. Encontrar o Nó Central (Ignorando SOD e EOD)
+        nos_poesia = [n for n in G.nodes() if n not in [SOD_NAME, EOD_NAME]]
+        no_principal = "N/A"
+        if nos_poesia:
+            # Encontra o nó com mais trânsito (maior grau de entrada + saída)
+            no_pesado = max(nos_poesia, key=lambda n: G.degree(n))
+            # Limpa o texto para ficar só a categoria (ex: tira o "José Pinhal -> ")
+            no_principal = str(no_pesado).split(" -> ")[-1] if " -> " in str(no_pesado) else str(no_pesado)
+        # ---------------------------------------
+
         # Tabela
-        print(f"{'Símbolo':<10} | {'Valor':<22} | {'Descrição'}", flush=True)
-        print("-" * 75, flush=True)
-        print(f"|U|        | {U:<22} | Total Falas", flush=True)
-        print(f"|A|        | {A:<22} | Total Ações", flush=True)
-        print(f"|D|        | {D:<22} | Total Diálogos", flush=True)
-        print(f"ΔT         | {duracao_str:<22} | Duração", flush=True)
-        print("-" * 75, flush=True)
-        print(f"|U|/|D|    | {ud_mean:.2f} ± {ud_std:.2f}        | Falas/Diálogo", flush=True)
-        print(f"|A|/|D|    | {ad_mean:.2f} ± {ad_std:.2f}        | Ações/Diálogo", flush=True)
-        print("-" * 75, flush=True)
-        print(f"|C|        | {C:<22} | Total Estados (Grafo)", flush=True)
-        print(f"|C_d|      | {Cd:<22} | Nós Fala", flush=True)
-        print(f"|C_a|      | {Ca:<22} | Nós Ação", flush=True)
-        print("-" * 75, flush=True)
-        print(f"|U|/|C|    | {uc_mean:.2f} ± {uc_std:.2f}        | Falas/Estado", flush=True)
-        print(f"|A|/|C|    | {ac_mean:.2f} ± {ac_std:.2f}        | Ações/Estado", flush=True)
-        print(f"|E|        | {E:<22} | Transições", flush=True)
-        print("="*60 + "\n", flush=True)
+        density = nx.density(G) # <--- Calcula a densidade aqui!
+
+        # Criamos uma variável com a tabela inteira
+        tabela = f"""{'Símbolo':<10} | {'Valor':<22} | {'Descrição'}
+---------------------------------------------------------------------------
+|U|        | {U:<22} | Total Falas
+|A|        | {A:<22} | Total Ações
+|D|        | {D:<22} | Total Diálogos
+ΔT         | {duracao_str:<22} | Duração
+---------------------------------------------------------------------------
+|U|/|D|    | {ud_mean:.2f} ± {ud_std:.2f}        | Falas/Diálogo
+|A|/|D|    | {ad_mean:.2f} ± {ad_std:.2f}        | Ações/Diálogo
+---------------------------------------------------------------------------
+|C|        | {C:<22} | Total Estados (Grafo)
+|C_d|      | {Cd:<22} | Nós Fala
+|C_a|      | {Ca:<22} | Nós Ação
+---------------------------------------------------------------------------
+|U|/|C|    | {uc_mean:.2f} ± {uc_std:.2f}        | Falas/Estado
+|A|/|C|    | {ac_mean:.2f} ± {ac_std:.2f}        | Ações/Estado
+|E|        | {E:<22} | Transições (Arestas)
+Densidade  | {density:<22.4f} | Densidade do Grafo
+Auto-Loops | {taxa_self_loops:>20.2f} % | Taxa de repetição no mesmo estado
+Nó Central | {no_principal:<22} | Categoria dominante do texto
+============================================================"""
+
+        # 1. Mostrar no ecrã
+        print(tabela, flush=True)
+
+        # Vai usar o mesmo nome do ficheiro .dot, mas muda para _metricas.txt
+        txt_filename = str(filename).replace('.dot', '') + '_metricas.txt'
+        with open(txt_filename, 'w', encoding='utf-8') as f:
+            f.write(tabela)
+        
+        print(f"Tabela de métricas guardada em: {txt_filename}\n")
 
     except Exception as e:
         print(f"ERRO MÉTRICAS: {e}")
@@ -3491,8 +3645,6 @@ def generate_markov_chain_separately_no(filename, n_clusters_speaker, matrix: pd
 
     return G, n_nodes
 
-
-# %% [markdown]
 # ### Gerar fluxo e calcular métricas (sentimento)
 
 # %%
@@ -3526,7 +3678,7 @@ if sentiment_cluster in df_final.columns:
         print("true_sentiment_EOD", true_sentiment_EOD)
         print("true_n_utterances_EOD", true_n_utterances_EOD)
 
-        # --- CORREÇÃO: CALCULAR MÉDIAS PARA O HTML ---
+        # CALCULAR MÉDIAS PARA O HTML
         import numpy as np # Garantir que temos numpy
         
         # Filtrar None e NaNs antes de calcular a média
@@ -3543,7 +3695,7 @@ if sentiment_cluster in df_final.columns:
         else:
             avg_EOD = 0.5 # Valor neutro por defeito
             
-        print(f"✅ Médias Calculadas -> SOD: {avg_SOD:.4f} | EOD: {avg_EOD:.4f}")
+        print(f"Médias Calculadas -> SOD: {avg_SOD:.4f} | EOD: {avg_EOD:.4f}")
 
 else:
         #result, n_nodes = generate_markov_chain_separately_no(filename, n_clusters_speaker, matrix, df_final, threshold[0])
@@ -3556,7 +3708,17 @@ result_list = [result, (labels_speaker)]
 with open(os.path.join('./Resultados/' + diretoria, file_result_flow), 'wb') as file:
         pickle.dump(result_list, file)
 
-variable_name = f'{Path(filename).stem}_{algorithm}_{metric_to_optimize}_{str(id_max)}'
+#variable_name = f'{Path(filename).stem}_{algorithm}_{metric_to_optimize}_{str(id_max)}'
+# nome_modelo_limpo = MODELOS[0].replace(":", "_")
+# variable_name = f"Fluxo_{nome_modelo_limpo}_{FILTRO_EXTRA_VALOR}_{LINGUA}_T{TEMP}"
+
+if TIPO_DATASET == "GENERICO":
+    nome_modelo_limpo = MODELOS[0].replace(":", "_")
+    variable_name = f"Fluxo_{nome_modelo_limpo}_AllDomains_{LINGUA}_T{TEMP}"
+else:
+    # Para Política, usa o nome do ficheiro Excel (sem o .xlsx)
+    nome_base = str(filename).split('.')[0]
+    variable_name = f"Fluxo_{nome_base}_{algorithm}"
 
 def save(graph: nx.MultiDiGraph, variable_name: str) -> str:
     #current_time = datetime.now().strftime("%Y%m%d_%H%M%S") 
@@ -3568,8 +3730,12 @@ def save(graph: nx.MultiDiGraph, variable_name: str) -> str:
 
     return full_filename
 
+import requests
+import os
+
 # Guardar o .dot
 dot_filename = save(result, variable_name)
+
 # %%
 #def show_file(filename: str) -> None:
 #    s = graphviz.Source.from_file(filename, encoding='utf-8')
@@ -3588,10 +3754,7 @@ def show_file(dot_filename):
         return
     s.view()
 
-
-# ==============================================================================
 # FUNÇÃO TSNE
-# ==============================================================================
 def apply_tsne(vectors, perplexity=30, n_iter=1000):
     # Quantas linhas tem este speaker
     n_samples = vectors.shape[0]
@@ -3605,7 +3768,7 @@ def apply_tsne(vectors, perplexity=30, n_iter=1000):
     if n_samples <= perplexity:
         current_perplexity = max(1, n_samples - 1)
 
-    tsne_model = TSNE(n_components=2, perplexity=current_perplexity, n_iter=n_iter, random_state=2)
+    tsne_model = TSNE(n_components=2, perplexity=current_perplexity, max_iter=n_iter, random_state=2)
     tsne_result = tsne_model.fit_transform(vectors)
     return tsne_result
 
@@ -3663,13 +3826,11 @@ for speaker in speakers:
     plt.savefig(plot_path_png, format='png', bbox_inches='tight')
     print(f"   Gráfico salvo: {plot_path_png}")
 
-    plt.close() # Fecha para libertar memória1~# ==============================================================================
+    plt.close() # Fecha para libertar memória1
 
-# ==============================================================================
 # FUNÇÃO PCA
-# ==============================================================================
 def apply_pca(vectors, n_components=2):
-    # Proteção: Se houver menos linhas do que componentes, ajusta ou retorna zeros
+    # Se houver menos linhas do que componentes, ajusta ou retorna zeros
     n_samples = vectors.shape[0]
     
     if n_samples < 1:
@@ -3746,15 +3907,17 @@ for speaker in speakers:
     plt.close()
 
 
-# ==============================================================================
-# 2. CARREGAMENTO E PREPARAÇÃO DOS DADOS DE TESTE
-# ==============================================================================
+# CARREGAMENTO E PREPARAÇÃO DOS DADOS DE TESTE
 print("\n>>> A CARREGAR DADOS DE TESTE...")
 
-if filename_test.endswith(".csv"):
-    dados_test = pd.read_csv(filename_test, sep=',')
-else:
-    dados_test = pd.read_excel(filename_test)
+#if filename_test.endswith(".csv"):
+#    dados_test = pd.read_csv(filename_test, sep=',')
+#else:
+#    dados_test = pd.read_excel(filename_test)
+
+print("\n>>> A CARREGAR DADOS DE TESTE (CÓPIA DIRETA DO TREINO)...")
+dados_test = dados.copy()
+
 
 # Garantir colunas essenciais
 if "Tipo" not in dados_test.columns: dados_test["Tipo"] = "fala"
@@ -3785,18 +3948,18 @@ names_aux = 0
 if 'Algo_speaker' not in locals(): Algo_speaker = {}
 if 'labels_speaker' not in locals(): labels_speaker = {}
 
-# --- FASE 1: CARREGAR MODELOS (APENAS SE NÃO FOR KEYWORDS) ---
+#  CARREGAR MODELOS (APENAS SE NÃO FOR KEYWORDS)
 if algorithm != "keywords":
     print(">>> [IA] A carregar modelos de Clustering e Linguagem...")
     
-    # 1. Carregar SentenceTransformer
+    # Carregar SentenceTransformer
     if 'model' not in locals():
         print("   A carregar SentenceTransformer...")
         try:
             model = SentenceTransformer(MODEL_ML)
         except: pass
 
-    # 2. Carregar KMeans/DBSCAN do disco
+    # Carregar KMeans/DBSCAN do disco
     dir_res = os.path.abspath('./Resultados/' + diretoria)
     if os.path.exists(dir_res):
         files = os.listdir(dir_res)
@@ -3809,7 +3972,7 @@ if algorithm != "keywords":
                         obj = joblib.load(os.path.join(dir_res, f))
                         if hasattr(obj, 'predict'):
                             Algo_speaker[speaker] = obj
-                            print(f"   ✅ Modelo carregado para {speaker}: {f}")
+                            print(f"Modelo carregado para {speaker}: {f}")
                             break
                     except: pass
 else:
@@ -3818,10 +3981,10 @@ else:
 for speaker in speakers:
     print(f"A processar speaker: {speaker}...")
     
-    # A. Filtrar dados
+    # Filtrar dados
     normalized_df_test_speaker[speaker] = normalized_df_test[normalized_df_test['Speaker'] == speaker]
     
-    # B. Preparar DataFrame
+    # Preparar DataFrame
     cols = ["dialogue_id", "turn_id", 'Speaker', 'utterance']
     possiveis = ["trueLabel", "speech_act_gerado", "Ação", "clusters_acoes"]
     for c in possiveis:
@@ -3896,7 +4059,7 @@ if dfs_validos:
     if cols_existentes:
         # Soma as predições de todos os oradores numa coluna única
         df_final_test['clusters_final'] = df_final_test[cols_existentes].fillna(0).sum(axis=1).astype(int)
-        print(f"✅ Coluna 'clusters_final' criada somando: {cols_existentes}")
+        print(f"Coluna 'clusters_final' criada somando: {cols_existentes}")
     else:
         # Se não houver colunas (ex: modo Keywords que falhou), cria a zeros
         print("  Aviso: Nenhuma coluna de clusters encontrada. A criar coluna a zeros.")
@@ -3905,17 +4068,12 @@ else:
     print("Nenhum dado foi processado no teste. A criar DF vazio.")
     df_final_test = pd.DataFrame(columns=['Speaker', 'clusters_final', 'dialogue_id', 'turn_id', 'utterance'])
 
-# 3. Ordenação Cronológica (Importante para o grafo não ficar baralhado)
+# Ordenação Cronológica (Importante para o grafo não ficar baralhado)
 if not df_final_test.empty:
     df_final_test = df_final_test.sort_values(by=['dialogue_id', 'turn_id']).reset_index(drop=True)
 
-print(">>> Chegou aqui sem erros!")
+print("Chegou aqui sem erros!")
 
-import pickle
-import os
-import networkx as nx
-import networkx.drawing.nx_pydot as nx_pydot
-import re
 
 def extrair_label_puro(nome_no):
     # Remove contagens tipo (96) do final para bater certo com o Excel
@@ -3939,13 +4097,11 @@ print(f"2. Total de frases armazenadas nos Clusters: {total_falas_nos_clusters}"
 if abs(total_falas_no_df - total_falas_nos_clusters) < 50:
     print("O grafo contém os dados de treino!")
 else:
-    print("AVISO: Há uma discrepância grande. Verifica se as 'Ações' estão a ser contadas.")
+    print("Há uma discrepância grande. Verifica se as 'Ações' estão a ser contadas.")
 print("=================================================================\n")
 
 
-# ==============================================================================
 # 1. DEFINIÇÃO DAS FUNÇÕES DE CÁLCULO (FF1)
-# ==============================================================================
 import Levenshtein
 import networkx as nx
 
@@ -4212,9 +4368,7 @@ for i, t in enumerate(threshold):
     v_measure_train = 0
     accuracy = 0
 
-    # ==========================================================================
     # 3. CARREGAR O GRAFO E GERAR IMAGEM
-    # ==========================================================================
     flow = None
     
     if dot_filename and os.path.exists(dot_filename):
@@ -4237,9 +4391,7 @@ for i, t in enumerate(threshold):
         print("A saltar o cálculo da accuracy.")
         continue
 
-    # ==========================================================================
-    # 4. CALCULAR ACCURACY
-    # ==========================================================================
+    # CALCULAR ACCURACY
     try:
         accuracy = calcular_accuracy_transicoes(df_final_test, flow, names_speaker)
         print("ACCURACY", accuracy)
@@ -4249,14 +4401,14 @@ for i, t in enumerate(threshold):
 
     df_final_test_clear = df_final_test.copy()
 
-    def modify_value(row, speakers):
-        for speaker in speakers:
-            if row['Speaker'] == speaker:
-                return speaker[0].lower() + str(row['clusters_final'])
-        return row['clusters_final']
+    #def modify_value(row, speakers):
+    #    for speaker in speakers:
+    #        if row['Speaker'] == speaker:
+    #            return speaker[0].lower() + str(row['clusters_final'])
+    #    return row['clusters_final']
 
-    def modify_true_value(row, speakers):
-        for speaker in speakers:(flow,) = pydot.graph_from_dot_file(dot_filename)
+    #def modify_true_value(row, speakers):
+    #    for speaker in speakers:(flow,) = pydot.graph_from_dot_file(dot_filename)
 
     accuracy = calcular_accuracy_transicoes(df_final_test, flow, names_speaker) 
     print("ACCURACY", accuracy)
@@ -4289,7 +4441,6 @@ for i, t in enumerate(threshold):
         df_final_test_clear['trueLabel'] = df_final_test_clear.apply(lambda row: modify_true_value(row, speakers), axis=1)
         df_final['trueLabel'] = df_final.apply(lambda row: modify_true_value(row, speakers), axis=1)
 
-
         for speaker in speakers:
             v_measure_test_speaker[speaker] = metrics.v_measure_score(df_test_speaker[speaker]['trueLabel'], df_test_speaker[speaker]['clusters_'+ speaker], beta = beta) 
             
@@ -4303,9 +4454,7 @@ for i, t in enumerate(threshold):
     #silhouette_score_norm = (silhouette_score + 1) / 2
     #Silhacc = (2 * accuracy * silhouette_score_norm) / (accuracy + silhouette_score_norm)
 
-    # ==========================================================================
     # GUARDAR FICHEIRO DE PARÂMETROS
-    # ==========================================================================
     file = open('./Resultados/' + diretoria +'/'+ nomeFichParSystem, 'w')
     
     for speaker in speakers:
@@ -4391,13 +4540,6 @@ def verificar_caminhos_sod_eod(df_final_test, names_speaker):
         caminhos_sod_eod.append(caminho_atual)
 
     return caminhos_sod_eod
-
-import numpy as np
-import networkx as nx
-import Levenshtein
-import pandas as pd
-import os
-from itertools import islice
 
 # Carregar os dados
 if filename[-4:] == ".csv":
@@ -4493,16 +4635,7 @@ def converter_dialogos_para_caminhos(dados, y_predicted_speaker, labels_speaker,
 
     return test_paths
 
-# %% [markdown]
 # # Guardar no dot para interface
-
-# %%
-import pickle
-import os
-import networkx as nx
-import networkx.drawing.nx_pydot as nx_pydot
-import unicodedata
-
 def normalizar_texto(texto):
     if not isinstance(texto, str):
         texto = str(texto)
@@ -4563,11 +4696,20 @@ def save_graph_and_variables(graph, variable_name, diretoria):
     with open(pkl_filename, "wb") as f:
         pickle.dump(variables, f)
 
-    # 4. Guardar DOT com cabeçalhos Lato para a interface
+    # Guardar DOT com cabeçalhos Lato para a interface
     pydot_graph = nx_pydot.to_pydot(graph)
     pydot_graph.write_raw(dot_filename)
+    
+    # Gerar PDF
+    pdf_filename = dot_filename.replace(".dot", ".pdf")
+    try:
+        pydot_graph.write_pdf(pdf_filename, prog=r'C:\Program Files\Graphviz\bin\dot.exe')
+        print(f"PDF gerado com sucesso em: {pdf_filename}")
+    except Exception as e:
+        print(f"Aviso: Não foi possível gerar o PDF. Erro: {e}")
 
-    with open(dot_filename, "r", encoding="utf-8") as f:
+    # ADICIONAR errors="ignore" 
+    with open(dot_filename, "r", encoding="utf-8", errors="ignore") as f:
         lines = f.readlines()
     
     new_lines = []
@@ -4579,7 +4721,8 @@ def save_graph_and_variables(graph, variable_name, diretoria):
             new_lines.append(f'// variables_file={os.path.basename(pkl_filename)}\n')
             inserted = True
 
-    with open(dot_filename, "w", encoding="utf-8") as f:
+    # E ADICIONAR errors="ignore"
+    with open(dot_filename, "w", encoding="utf-8", errors="ignore") as f:
         f.writelines(new_lines)
 
     return dot_filename
@@ -4692,13 +4835,8 @@ import os
 # ## Frontend
 
 # %%
-import pickle
-import os
-import networkx as nx
-import networkx.drawing.nx_pydot as nx_pydot
-
 def extract_variables_file_from_dot(dot_filepath: str) -> str:
-    with open(dot_filepath, 'r', encoding='utf-8') as f:
+    with open(dot_filepath, 'r', encoding='utf-8', errors='ignore') as f:
         for line in f:
             print(line)
             if line.strip().startswith("// variables_file="):
@@ -4739,7 +4877,7 @@ def load_data_from_dot(dot_filepath: str):
     cluster_id_speaker = vars_loaded["cluster_id_speaker"]
 
     # 6. Ler código do ficheiro .dot como string
-    with open(dot_filepath, encoding='utf-8') as f:
+    with open(dot_filepath, encoding='utf-8', errors='ignore') as f:
         dot_code = f.read()
 
     return {
@@ -4757,12 +4895,8 @@ def load_data_from_dot(dot_filepath: str):
         "graph_result": result,
     }
 
-import os
 import webbrowser
 import json 
-import json
-import numpy as np
-import networkx as nx
 
 cores_personalizadas = {}
 
@@ -4842,16 +4976,14 @@ if pastas_resultados:
     
     if os.path.exists(caminho_real):
         print(f"Ficheiro detetado automaticamente em: {caminho_real}")
-        # 3. Carrega os dados usando o caminho dinâmico
+        # Carrega os dados usando o caminho dinâmico
         data = load_data_from_dot(caminho_real)
     else:
         print(f"Erro: O ficheiro .dot não existe em {subpasta_recente}")
 else:
     print("Erro: Nenhuma pasta encontrada em ./Resultados")
 
-# ==============================================================================
 # INICIAR FLASK 
-# ==============================================================================
 
 n_edges = len(result.edges)
 total_nodes = len(result.nodes)
@@ -5172,6 +5304,8 @@ legenda_html = f"""
 </div>
 """
 
+nome_imagem_heatmap = f"Heatmap_Transitions_{filename.split('.')[0]}.png"
+
 html_content = f"""
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -5202,6 +5336,39 @@ html_content = f"""
             transition: all 0.2s ease;
             opacity: 0.9;
         }}
+
+        /* ESTILOS PARA O MODAL DO HEATMAP */
+        /* ESTILOS PARA O MODAL DO HEATMAP */
+        .modal {{
+            display: none; 
+            position: fixed; 
+            z-index: 3000;
+            padding-top: 50px; 
+            left: 0; top: 0;
+            width: 100%; height: 100%; 
+            background-color: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(5px);
+        }}
+        .modal-content {{
+            margin: auto;
+            display: block;
+            max-width: 80%;
+            max-height: 85vh;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            animation: zoomIn 0.3s ease;
+        }}
+        .close-modal {{
+            position: absolute;
+            top: 20px; right: 40px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }}
+        .close-modal:hover {{ color: #87CEEB; }}
+        @keyframes zoomIn {{ from {{transform: scale(0.9); opacity: 0;}} to {{transform: scale(1); opacity: 1;}} }}
         
         .metric-help:hover {{
             color: #87CEEB;         /* Fica azul claro */
@@ -5634,10 +5801,14 @@ html_content = f"""
         <button id="btn-pan" title="Move"><i class="fas fa-hand-paper"></i></button>
         <button id="btn-zoom-box" title="Zoom Box"><i class="fas fa-object-group"></i></button>
         <button id="btn-screenshot" title="Print"><i class="fas fa-camera"></i></button>
+        <button id="btn-heatmap" title="View Heatmap Matrix"><i class="fas fa-th"></i></button>
     </div>
 </div>
 
-
+<div id="heatmapModal" class="modal">
+    <span class="close-modal" id="closeHeatmap">&times;</span>
+    <img class="modal-content" id="imgHeatmap" src="{nome_imagem_heatmap}" alt="Transition Heatmap">
+</div>
 
 <div id="tooltip" class="custom-tooltip"></div>
 
@@ -6074,9 +6245,7 @@ html_content = f"""
         }});
     }}
 
-    // =========================================================
     // AJUSTAR ESPESSURA DAS SETAS (PROBABILIDADE)
-    // =========================================================
     function updateEdgeThickness(svgElement) {{
         svgElement.querySelectorAll("g.edge").forEach(edge => {{
             const label = edge.querySelector("text");
@@ -6122,17 +6291,17 @@ html_content = f"""
 
                 let speakerName = fullTitle;
 
-                // 1. Se tiver seta "->", corta pela seta (Prioridade Máxima)
+                // Se tiver seta "->", corta pela seta (Prioridade Máxima)
                 if (fullTitle.includes("->")) {{
                     speakerName = fullTitle.split("->")[0];
                 }} 
-                // 2. Se tiver " - " (traço COM espaços), corta pelo traço
+                // Se tiver " - " (traço COM espaços), corta pelo traço
                 // Isto protege o CDS-PP, porque o CDS-PP não tem espaços no meio!
                 else if (fullTitle.includes(" - ")) {{
                     speakerName = fullTitle.split(" - ")[0];
                 }}
                 
-                // 3. Limpeza final (tira números entre parênteses e espaços em branco)
+                // Limpeza final (tira números entre parênteses e espaços em branco)
                 speakerName = speakerName.split("(")[0].trim();
                 
                 // Cabeçalho básico (SOD/EOD)
@@ -6183,7 +6352,7 @@ html_content = f"""
                         }}
                     }}
 
-                    // Buscar Frases
+                    // Procurar Frases
                     let listaFrases = [];
                     if (clusterId !== undefined && dictFalas[speakerDicionario] && dictFalas[speakerDicionario][clusterId]) {{
                         listaFrases = dictFalas[speakerDicionario][clusterId];
@@ -6658,7 +6827,6 @@ html_content = f"""
                     }}
                 }});
 
-                // --- MAGIA INVOCADA AQUI ---
                 if (typeof makeNodesDraggable === "function") makeNodesDraggable(element); 
                 if (typeof updateSpeakersFromGraph === "function") updateSpeakersFromGraph(element);
                 if (typeof updateLegendFromGraph === "function") updateLegendFromGraph(element);
@@ -6860,9 +7028,7 @@ html_content = f"""
         }}
     }});
 
-    // =========================================================
     // ZOOM COM A RODA DO RATO (SCROLL)
-    // =========================================================
     graphWrapper.addEventListener("wheel", (e) => {{
         e.preventDefault(); // Impede a página de fazer scroll para cima/baixo
 
@@ -6938,13 +7104,53 @@ html_content = f"""
             renderNewDot(dotCode);
         }}
     }});
+
+    // =========================================================
+    // MODAL DO HEATMAP
+    // =========================================================
+    const modalHeatmap = document.getElementById("heatmapModal");
+    const btnHeatmap = document.getElementById("btn-heatmap");
+    const closeHeatmap = document.getElementById("closeHeatmap");
+
+    if (btnHeatmap && modalHeatmap) {{
+        btnHeatmap.addEventListener("click", () => {{
+            modalHeatmap.style.display = "block";
+        }});
+    }}
+
+    if (closeHeatmap) {{
+        closeHeatmap.addEventListener("click", () => {{
+            modalHeatmap.style.display = "none";
+        }});
+    }}
+
+    // Fechar se clicar fora da imagem
+    window.addEventListener("click", (e) => {{
+        if (e.target === modalHeatmap) {{
+            modalHeatmap.style.display = "none";
+        }}
+    }});
+    
+    // Fechar com a tecla ESC
+    document.addEventListener("keydown", (e) => {{
+        if (e.key === "Escape" && modalHeatmap.style.display === "block") {{
+            modalHeatmap.style.display = "none";
+        }}
+    }});
 </script>
 
 </body>
 </html>
 """
 
-caminho_html = os.path.join('./Resultados/' + diretoria, 'grafo_interativo_2026.html')
+# Criar o nome do ficheiro HTML automaticamente (usando as variáveis que já definimos lá em cima)
+nome_base = str(filename).split('.')[0]
+nome_html = f"Interface_{nome_base}.html"
+
+# Juntar à diretoria dos resultados
+caminho_html = os.path.join('./Resultados/' + diretoria, nome_html)
+
+# Garantir que a pasta existe e guardar
 os.makedirs(os.path.dirname(caminho_html), exist_ok=True)
 
 with open(caminho_html, 'w', encoding='utf-8') as f:
@@ -6963,34 +7169,249 @@ try:
 except NameError:
     print("n_nodes não definido neste contexto.")
 
+# Fluxo com 14 níveis
+from graphviz import Digraph
+from collections import Counter
+import pandas as pd
+import os
 
+CORES_ATOS = {
+    'REPRESENTATION': '#A9CCE3', 
+    'SUBJECTIVITY': '#A9DFBF',   
+    'EVALUATION': '#F5B7B1',     
+    'FIGURATION': '#D7BDE2',     
+    'DYNAMICS': '#F5CBA7'        
+}
+
+def gerar_fluxo_hierarquico(df_atual, diretoria_out, nome_ficheiro, titulo_grafo=""):
+    print("\n" + "="*50)
+    print(f"A GERAR O FLUXO HIERÁRQUICO: {titulo_grafo}")
+    print("="*50)
+    
+    if isinstance(df_atual, list):
+        df_soneto = pd.DataFrame(df_atual)
+    else:
+        df_soneto = df_atual.copy()
+    
+    if df_soneto.empty:
+        print("Sem dados para gerar o fluxo hierárquico.")
+        return
+
+    # Corta qualquer linha gerada por alucinação (acima da 14ª)
+    df_soneto = df_soneto[df_soneto['turn_id'] <= 14]
+
+    dot = Digraph(comment='Hierarchical Flow')
+    dot.attr(rankdir='TB', ranksep='0.6', nodesep='0.5')
+    
+    if titulo_grafo:
+        dot.attr(label=f'<<B>{titulo_grafo}</B>>', labelloc='t', fontsize='22', fontname='Arial')
+    
+    dot.node('SOP', 'SOP', shape='circle', style='filled', fillcolor='#FFCC00', color='#FFCC00', fontname='Arial', fontcolor='black')
+    dot.node('EOP', 'EOP', shape='circle', style='filled', fillcolor='#FFCC00', color='#FFCC00', fontname='Arial', fontcolor='black')
+    
+    transicoes = []
+    niveis = {i: set() for i in range(1, 15)}
+    
+    for p_id, grupo in df_soneto.groupby('dialogue_id'):
+        grupo = grupo.sort_values('turn_id')
+        
+        if 'speech_act_gerado' in grupo.columns:
+            atos = grupo['speech_act_gerado'].fillna("Indef").tolist()
+        elif 'trueLabel' in grupo.columns:
+            atos = grupo['trueLabel'].fillna("Indef").tolist()
+        else:
+            continue
+            
+        turn_ids = grupo['turn_id'].tolist()
+        if len(atos) == 0: continue
+            
+        for i in range(len(atos)):
+            linha_num = int(turn_ids[i])
+            if 1 <= linha_num <= 14:
+                niveis[linha_num].add(f"L{linha_num}_{atos[i]}")
+            
+        no_inicial = f"L{int(turn_ids[0])}_{atos[0]}"
+        transicoes.append(('SOP', no_inicial))
+        
+        for i in range(len(atos) - 1):
+            origem = f"L{int(turn_ids[i])}_{atos[i]}"
+            destino = f"L{int(turn_ids[i+1])}_{atos[i+1]}"
+            transicoes.append((origem, destino))
+            
+        no_final = f"L{int(turn_ids[-1])}_{atos[-1]}"
+        transicoes.append((no_final, 'EOP'))
+
+    for i in range(1, 15):
+        dot.node(f'Label_L{i}', f'Line {i}', shape='plaintext', fontname='Arial', fontsize='12', fontcolor='black', fontstyle='bold')
+        if i < 14:
+            dot.edge(f'Label_L{i}', f'Label_L{i+1}', style='invis')
+
+    for i in range(1, 15):
+        with dot.subgraph() as s:
+            s.attr(rank='same')
+            s.node(f'Label_L{i}')
+            for no in niveis[i]:
+                ato_label = no.split("_", 1)[1] if "_" in no else no
+                ato_limpo = ato_label.strip().upper()
+                cor_fundo = CORES_ATOS.get(ato_limpo, '#E5E7E9') 
+                s.node(no, ato_label, shape='ellipse', style='filled', fillcolor=cor_fundo, color='black', penwidth='1.0', fontname='Arial', fontcolor='black')
+
+    contagem = Counter(transicoes)
+    origens_totais = {}
+    for (orig, dest), count in contagem.items():
+        origens_totais[orig] = origens_totais.get(orig, 0) + count
+
+    # CÁLCULO DA DENSIDADE
+    num_nos = 2 + sum(len(nos) for nos in niveis.values())
+    num_arestas = len(contagem)
+    
+    densidade = 0.0
+    if num_nos > 1:
+        densidade = num_arestas / (num_nos * (num_nos - 1))
+        
+    print(f"\nMÉTRICAS:")
+    print(f"   -> Nós: {num_nos}")
+    print(f"   -> Arestas: {num_arestas}")
+    print(f"   -> Densidade Global: {densidade:.4f} ({(densidade * 100):.2f}%)")
+    print("==================================================\n")
+
+    for (orig, dest), count in contagem.items():
+        prob = count / origens_totais[orig]
+        
+        espessura = str(1.0 + (prob * 5.0))
+        intensidade = int(max(0, min(200, 200 - (prob * 200))))
+        cor = f"#{intensidade:02x}{intensidade:02x}{intensidade:02x}"
+        
+        dot.edge(orig, dest, label=f"{prob:.2f}", penwidth=espessura, color=cor, fontcolor=cor, fontname='Arial', fontsize='10')
+
+    caminho_final = os.path.join('./Resultados', diretoria_out, nome_ficheiro)
+    try:
+        dot.render(caminho_final, format='png', cleanup=True)
+        print(f"Diagrama guardado em: {caminho_final}.png\n")
+    except Exception as e:
+        print(f"Erro ao gerar PNG. Ficheiro .dot guardado em: {caminho_final}.dot")
+        dot.save(f"{caminho_final}.dot")
+
+# CHAMADA DA FUNÇÃO
+# try:
+#     traducao_dominios = {'Desporto': 'Sports', 'Música': 'Music', 'Cidades': 'Cities'}
+#     modelo_original = MODELOS[0] if 'MODELOS' in locals() and MODELOS else "Modelo"
+#     nome_modelo_limpo = modelo_original.replace(":", "_")
+#     dominio_pt = FILTRO_EXTRA_VALOR if 'FILTRO_EXTRA_VALOR' in locals() else "Domínio"
+#     dominio_en = traducao_dominios.get(dominio_pt, dominio_pt) 
+#     temp_val = TEMP if 'TEMP' in locals() else "X"
+#     
+#     meu_titulo = f"{dominio_en} ({modelo_original} | T={temp_val})"
+#     nome_fich_hierarquico = f"Fluxo_Hierarquico_{nome_modelo_limpo}_{dominio_en}_T{temp_val}"
+#     diretoria = "Imagens_Grafos" if 'diretoria' not in locals() else diretoria
+#     gerar_fluxo_hierarquico(df_final, diretoria, nome_fich_hierarquico, titulo_grafo=meu_titulo)
+# except Exception as e:
+#     print(f"Erro na chamada da função: {e}")
+# -----------------------------------
+
+# ==============================================================
+# 1. FUNÇÕES AUXILIARES (Definir antes de usar)
+# ==============================================================
+def validar_matematica_transicoes(df_atual, linha_origem=4, ato_origem='FIGURATION'):
+    print(f"Teste para analisar a transição da Linha {linha_origem} ({ato_origem}) para a Linha {linha_origem + 1}\n")
+    
+    if isinstance(df_atual, list):
+        df_base = pd.DataFrame(df_atual)
+    else:
+        df_base = df_atual.copy()
+
+    # Garantir que usamos apenas as falas
+    if 'Tipo' in df_base.columns:
+        df_soneto = df_base[df_base['Tipo'].astype(str).str.lower() == 'fala'].copy()
+    else:
+        df_soneto = df_base.copy()
+
+    coluna_ato = 'speech_act_gerado' if 'speech_act_gerado' in df_soneto.columns else 'trueLabel'
+    
+    # 1. Encontrar todos os poemas que na Linha de Origem tiveram o Ato de Origem
+    poemas_na_origem = df_soneto[
+        (df_soneto['turn_id'] == linha_origem) & 
+        (df_soneto[coluna_ato] == ato_origem)
+    ]
+    
+    ids_poemas = poemas_na_origem['dialogue_id'].tolist()
+    total_origem = len(ids_poemas)
+    
+    if total_origem == 0:
+        print(f"Não há nenhum poema que tenha '{ato_origem}' na Linha {linha_origem}.")
+        return
+
+    print(f"PASSO 1: O modelo gerou '{ato_origem}' na Linha {linha_origem} em exatamente {total_origem} poemas.")
+    
+    # 2. Olhar apenas para a Linha Seguinte, MAS APENAS para os IDs que encontrámos no Passo 1
+    linha_seguinte = linha_origem + 1
+    poemas_no_destino = df_soneto[
+        (df_soneto['turn_id'] == linha_seguinte) & 
+        (df_soneto['dialogue_id'].isin(ids_poemas))
+    ]
+    
+    # 3. Contar para onde é que eles foram
+    contagem_destinos = poemas_no_destino[coluna_ato].value_counts()
+    
+    for destino, quantidade in contagem_destinos.items():
+        # 4. Calcular a probabilidade
+        probabilidade = quantidade / total_origem
+        print(f"-> Foram para '{destino}': {quantidade} poemas")
+        print(f"   {quantidade} / {total_origem} = {probabilidade:.2f} ({probabilidade*100:.0f}%)")
+
+
+# ==============================================================
+# 2. GERAÇÃO DO FLUXO HIERÁRQUICO (APENAS PARA POESIA)
+# ==============================================================
+if TIPO_DATASET == "POESIA":
+    try:
+        modelo_original = MODELOS[0] if 'MODELOS' in locals() and MODELOS else "Modelo"
+        nome_modelo_limpo = modelo_original.replace(":", "_")
+        temp_val = TEMP if 'TEMP' in locals() else "X"
+        
+        dominio_en = "Poetry" 
+        titulo_visual = "Poetry Domain"
+        
+        meu_titulo = f"{titulo_visual} ({modelo_original} | T={temp_val})"
+        nome_fich_hierarquico = f"Fluxo_Hierarquico_{nome_modelo_limpo}_{dominio_en}_T{temp_val}"
+        
+        diretoria_grafos = "Imagens_Grafos" if 'diretoria' not in locals() else diretoria
+        
+        # Chama a função de gerar as 14 linhas
+        gerar_fluxo_hierarquico(df_final, diretoria_grafos, nome_fich_hierarquico, titulo_grafo=meu_titulo)
+        
+        # Faz a validação matemática
+        validar_matematica_transicoes(df_final, linha_origem=1, ato_origem='DYNAMICS')
+        
+    except Exception as e:
+        print(f"Erro na geração do fluxo de poesia: {e}")
+else:
+    print(f"\n>>> Fluxo Hierárquico e validação ignorados (dataset no modo '{TIPO_DATASET}').")
+
+
+# ==============================================================
+# 3. LIMPEZA DE FICHEIROS TEMPORÁRIOS
+# ==============================================================
 directory = './Resultados/' + diretoria
+files_to_keep = (".csv", ".pdf", ".xlsx", ".txt", ".png", ".json", ".html", ".dot", ".pkl")
 
-files = os.listdir(directory)
+if os.path.exists(directory):
+    for file in os.listdir(directory):
+        file_path = os.path.join(directory, file)
+        # Apaga o que não terminar nestas extensões valiosas
+        if os.path.isfile(file_path) and not file.lower().endswith(files_to_keep):
+            try:
+                os.remove(file_path)
+                print(f"Apagado ficheiro temporário: {file}")
+            except Exception as e:
+                print(f"Erro ao apagar {file}: {e}")
 
-for file in files:
-    file_path = os.path.join(directory, file)
 
-    files= (".csv", ".pdf", ".xlsx", ".txt", ".png", ".json", ".html", ".dot")
-    if os.path.isfile(file_path) and not file.lower().endswith(files):
-        try:
-            os.remove(file_path)
-            print(f"Deleted: {file}")
-        except Exception as e:
-            print(f"Error deleting {file}: {e}")
-
-print("O servidor Flask está a iniciar na porta 5051...")
-
+# ==============================================================
+# 4. INÍCIO DO SERVIDOR FLASK (TEM DE SER A ÚLTIMA COISA!)
+# ==============================================================
+print("\nO servidor Flask está a iniciar na porta 5051...")
 try:
-    # OPÇÃO A: MODO LOCAL
-    # Usa '127.0.0.1' se estás a correr o código diretamente no teu próprio computador
-    #app.run(host='127.0.0.1', port=5051, debug=False, use_reloader=False)
-
-    # OPÇÃO B: MODO SERVIDOR REMOTO (Universidade, SSH, nohup)
-    # Descomenta a linha abaixo e comenta a de cima se o Python estiver a correr
-    # num servidor externo. O '0.0.0.0' permite que o Flask aceite chamadas vindas
-    # do portátil (geralmente em conjunto com um túnel SSH).
     app.run(host='0.0.0.0', port=5051, debug=False, use_reloader=False)
-
 except Exception as e:
     print(f"\nErro ao iniciar o Flask: {e}")
