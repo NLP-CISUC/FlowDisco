@@ -102,21 +102,22 @@ MODEL_ML = "paraphrase-multilingual-MiniLM-L12-v2"
 # Algoritmo
 algorithm = "kmeans"
 #algorithm = "keywords"
+#algorithm = "bertopic"
 #algorithm = "hieraquico"
 #algorithm = "dbscan"
 #algorithm = "none"
 
 # Labelling
-labelling = "kbert"
+#labelling = "kbert"
 #labelling = "keywords"
 #labelling = "verbs"
 #labelling = "closest"
-#labelling = "llm"
+labelling = "llm"
 #labelling = "none"
 
 labelling_for_excel = [
-    "kbert",
-    #"llm",
+    #"kbert",
+    "llm",
     #"verbs",
     #"closest",
     # "none"
@@ -132,7 +133,8 @@ metric_to_optimize = "silhouette"
 #filename = "MRDA_train.csv"
 #filename = "Estado_Da_Nacao_21_julho_2021_falas_separadas.xlsx"
 #filename = "Estado_da_Nacao_2025_CERTO.xlsx"
-filename = "Estado_Da_Nacao_17_julho_2025.xlsx"
+#filename = "Estado_Da_Nacao_17_julho_2025.xlsx"
+filename = "24_TREINO_new.xlsx"
 #filename = "Estado_Da_Nacao_17_julho_2024.xlsx"
 #filename = "Estado_Da_Nacao_20_julho_2023.xlsx"
 #filename = "Estado_Da_Nacao_20_julho_2022.xlsx"
@@ -148,13 +150,14 @@ filename = "Estado_Da_Nacao_17_julho_2025.xlsx"
 #filename_test = "Estado_Da_Nacao_20_julho_2023.xlsx"
 #filename_test = "Estado_Da_Nacao_20_julho_2022.xlsx"
 #filename_test = "Estado_Da_Nacao_21_julho_2021.xlsx"
-filename_test = "Estado_Da_Nacao_17_julho_2025.xlsx"
+#filename_test = "Estado_Da_Nacao_17_julho_2025.xlsx"
+filename_test = "24_TESTE_new.xlsx"
 #filename_test = "24_TESTE.xlsx"
 #filename_test = "DATASET_FINAL.xlsx"
 #filename_test = "dataset_short_paper_FINAL.xlsx"
 
 # Modos disponíveis: "GENERICO", "POLITICA" ou "POESIA"
-TIPO_DATASET = "POLITICA"
+TIPO_DATASET = "GENERICO"
 
 #Valores de Threshold
 #threshold = [0, 0.05, 0.1, 0.15, 0.2]
@@ -187,7 +190,7 @@ sentiment_in_flow = True
 id_max = 1
 
 # URL para o Ollama funcionar
-llm_url = "http://localhost:8080"
+llm_url = "http://localhost:11434"
 
 #Diretoria
 #diretoria = filename +'_'+ algorithm +'_'+ labelling +'_'+ metric_to_optimize +'_'+ str(threshold[0]) +'_'+ str(n_trials) +'_'+ str(datetime.now())
@@ -410,7 +413,7 @@ def mapear_entidade_dinamica(row, ano, gov_partido, entidades_map, incluir_outro
     if any(mod in speaker_nome for mod in BLOCO_MODERADOR):
         return "Presidente" 
         
-    # 4. Tratar de Partidos
+    # 4. Tratar dos Partidos
     partido_real = partido_nome if pd.notna(partido_nome) and partido_nome else speaker_nome
     
     partido_real_upper = partido_real.upper()
@@ -448,7 +451,7 @@ def atribuir_cor_friends(speaker):
             return cor_aleatoria
 
 def use_sentence_transformer(sentences, model):
-    # Frases são codificadas chamando model.encode()
+    # As frases são codificadas quando chamamos o  model.encode()
     embeddings = model.encode(sentences)
     vectors = np.array(embeddings)
     return vectors
@@ -1452,87 +1455,73 @@ def describe_clusters_LLM(y_predicted, normalized_df, ollama_url):
     df_teste["predicted"] = y_predicted
     df_teste["utterance"] = df_teste["utterance"].astype(str)
 
-    # Lista para armazenar as labels do cluster e palavras-chave do LLM
     list_LLM = []
-    list_clusters = []  # clusters
+    list_clusters = [] 
 
-    # ids dos clusters, por ordem crescente
     cluster_ids = sorted(list(set(y_predicted)))
-    n_clusters = len(cluster_ids)
-    not_labelled = [a for a in range(n_clusters)]
-    while not_labelled:
-        cluster_id = not_labelled[0]
-        llm = Ollama(base_url=ollama_url, model="llama3",template='', temperature=0.1, num_predict=50)
+    
+    # Inicializa o LLM fora do loop para ser mais rápido
+    llm = Ollama(base_url=ollama_url, model="llama3", temperature=0.1, num_predict=50)
+    
+    print(f"\n[LLM] A gerar rótulos para {len(cluster_ids)} clusters...")
 
+    for cluster_id in cluster_ids:
         predicted_df = df_teste[df_teste["predicted"] == cluster_id]
-        corpus = predicted_df['utterance']
-
+        corpus = predicted_df['utterance'].tolist()
         corpus = [str(c).replace("'","") for c in corpus]
-        # Ensure we're not trying to select more strings than are available
+        
         subset_length = min(30, len(corpus))
-
-        # Randomly select exactly 30 utterances
         subset = random.sample(corpus, subset_length)
-        #print("corpus", " ".join(corpus))
-        #prompt = "Please, give a label that captures the main actions of this group of utterances: '"
-        #prompt_end = "'. Answer with the label only, and use this format Label: {your_label}, and use at most three words."
 
         prompt = "Por favor, atribua um rótulo (label), em PT-PT, que capture as ações principais deste grupo de falas: '"
         prompt_end = "'. Responda apenas com o rótulo, use este formato Rótulo: {seu_rótulo}, e use no máximo três palavras."
         data = ';'.join(subset)
-        response = llm.generate([prompt + data + prompt_end])
-        keywords = response.generations[0][0].text
-        #print(f"Cluster {cluster_id} - Prompt: {prompt + data + prompt_end}")
-        #print(f"Cluster {cluster_id} - Response: {keywords}")
-
-        pattern = r"Label:\s*(.+?)(?:[\n.:;,]|$)"
-        pattern2 = r"\s*(.+?)(?:[\n.:;,]|$)"
-
-        # Search for the label using the pattern
-        label = keywords
-        match = re.search(pattern, keywords)
         
-        split_keywords = keywords.split(':', 1) # Divide apenas no primeiro ':'
+        try:
+            response = llm.generate([prompt + data + prompt_end])
+            keywords = response.generations[0][0].text
 
-        if match:
-            label = match.group(1).strip().replace('"', '')
-        
-        elif len(split_keywords) > 1: # Caso 2: O LLM usou um ':', mas não "Label:" (ex: "Rótulo: Falar de Economia")
-            label_part = split_keywords[1] # Pega a parte DEPOIS do primeiro ':'
-            match2 = re.search(pattern2, label_part)
-            if match2:
-                label = match2.group(1).strip().replace('"', '')
-                #print("Label (Match 2):", label)
+            pattern = r"Label:\s*(.+?)(?:[\n.:;,]|$)"
+            pattern2 = r"\s*(.+?)(?:[\n.:;,]|$)"
+            label = keywords
+            match = re.search(pattern, keywords)
+            split_keywords = keywords.split(':', 1)
+
+            if match:
+                label = match.group(1).strip().replace('"', '')
+            elif len(split_keywords) > 1:
+                label_part = split_keywords[1]
+                match2 = re.search(pattern2, label_part)
+                if match2:
+                    label = match2.group(1).strip().replace('"', '')
+                else:
+                    label = label_part.strip().replace('"', '') 
             else:
-                label = label_part.strip().replace('"', '') # Fallback
-                #print("Label (Split Fallback):", label)
-        else:
-            # 'label' já contém a resposta original 'keywords'. Só precisamos de a limpar.
-            label = label.strip().replace('"', '')
-            print(f"Label not found, using raw response: {label}")
+                label = label.strip().replace('"', '')
+                
+        except Exception as e:
+            print(f"Erro ao comunicar com Ollama no cluster {cluster_id}: {e}")
+            label = f"Tópico {cluster_id}"
 
-        keywords_list = [label]
+        # -----------------------------------------------------
+        # O TRUQUE ANTI-LOOP INFINITO
+        # Se a label já existir, acrescentamos um número à frente
+        # -----------------------------------------------------
+        base_label = label
+        counter = 2
+        while [label] in list_LLM:
+            label = f"{base_label} {counter}"
+            counter += 1
 
-        if keywords_list not in list_LLM:
-            list_LLM.append(keywords_list)
-            list_clusters.append(cluster_id)
-            not_labelled.pop(0)
-        else:
-            old_index = list_LLM.index(keywords_list)
-            old_cluster_id = list_clusters[old_index]
-            list_LLM.remove(keywords_list)
-            list_clusters.pop(old_index)
-            not_labelled.pop(0)
-            not_labelled.append(old_cluster_id)
-            not_labelled.append(cluster_id)
+        list_LLM.append([label])
+        list_clusters.append(cluster_id)
+        
+        print(f" -> Cluster {cluster_id}: {label}")
 
-    # Cria DataFrames a partir das listas e concatena-os
-    #df1 = pd.DataFrame("Clusters", list_clusters, columns=["clusters"])
-    df1 = pd.DataFrame({"clusters": [f"Clusters {x}" for x in list_clusters]})
+    df1 = pd.DataFrame({"clusters": [f"Cluster {x}" for x in list_clusters]})
     df2 = pd.DataFrame(list_LLM, columns=["labels"])
     df_labels = pd.concat([df1, df2], axis=1).sort_values(by=['clusters'])
-    print("Labels: ")
-    print(df_labels)
+    
     return df_labels
 
 # Accuracy
@@ -1733,17 +1722,21 @@ if TIPO_DATASET == "GENERICO":
     FILTRO_EXTRA_VALOR = ['Desporto', 'Música', 'Cidades'] 
 
     # Filtra pelas colunas que só existem no dataset LLM
-    dados = dados[
-        (dados['Modelo'].isin(MODELOS)) &
-        (dados['Lingua'] == LINGUA) &
-        (dados['Temperatura'] == TEMP)
-    ]
+    if all(col in dados.columns for col in ['Modelo', 'Lingua', 'Temperatura']):
+        dados = dados[
+            (dados['Modelo'].isin(MODELOS)) &
+            (dados['Lingua'] == LINGUA) &
+            (dados['Temperatura'] == TEMP)
+        ]
+    else:
+        print(">>> Aviso: Colunas Modelo, Lingua, Temp não encontradas. Filtro ignorado.")
+        NOME_DO_GRUPO = "All Domains"
 
-    if FILTRO_EXTRA_COLUNA != "":
+    if FILTRO_EXTRA_COLUNA != "" and FILTRO_EXTRA_COLUNA in dados.columns:
         dados = dados[dados[FILTRO_EXTRA_COLUNA].isin(FILTRO_EXTRA_VALOR)]
 
     # Sobrescreve o Speaker
-    dados['Speaker'] = NOME_DO_GRUPO
+    #dados['Speaker'] = NOME_DO_GRUPO
 
 # ==============================================================
 
@@ -1824,7 +1817,7 @@ else:
     }
     normalized_df['Speaker'] = normalized_df['Speaker'].replace(MAPA_GENERICO)
 
-# Atualizar lista final (Comum aos dois modos)
+# Atualizar lista final (para os dois modos)
 speakers = normalized_df['Speaker'].unique().tolist()
 if 'Acao' in speakers: speakers.remove('Acao')
 
@@ -2010,12 +2003,75 @@ if labelling == "keywords":
 
 # MODO ATIVO: CLUSTERING
 else:    
-    if metric_to_optimize == "vmeasure":
-        for speaker in speakers:
-            if algorithm == "dbscan":
-                y_predicted_speaker[speaker], n_clusters_speaker[speaker], params_speaker[speaker] = clustering_dbscan_vmeasure_optuna(vectors_speaker[speaker], pickle_filename_speakers[speaker], normalized_df_speaker[speaker], role= speaker)
-            else:
-                y_predicted_speaker[speaker], centers_speaker[speaker], n_clusters_speaker[speaker], params_speaker[speaker] = clustering_kmeans_vmeasure_optuna(vectors_speaker[speaker], normalized_df_speaker[speaker], role= speaker, nomeFichPickle=pickle_filename_speakers[speaker],val=val)
+    for speaker in speakers:
+        # SE FOR BERTOPIC
+        if algorithm == "bertopic":
+            print(f"\n>>> [{speaker}] A usar BERTopic (Clustering + Labelling Automático)...")
+            from bertopic import BERTopic
+            from sklearn.feature_extraction.text import CountVectorizer
+            from bertopic.representation import KeyBERTInspired
+            
+            # Ignorar palavras de ligação
+            vectorizer_model = CountVectorizer(stop_words=stopwords, ngram_range=(1, 2))
+            
+            # Forçar a escolha de palavras com verdadeiro significado (Keywords)
+            representation_model = KeyBERTInspired()
+            
+            # Inicializa o modelo (com o filtro e o KeyBERT)
+            topic_model = BERTopic(
+                language="multilingual",
+                min_topic_size=5, 
+                nr_topics=20, # Força o modelo a tentar encontrar até 20 temas distintos
+                vectorizer_model=CountVectorizer(stop_words=stopwords, ngram_range=(1, 2)),
+                representation_model=representation_model
+            )
+            
+            textos = utterances_speaker[speaker]
+            textos_str = [str(doc) for doc in textos]
+            
+            # Obter o dataframe original deste speaker para servir de base
+            df_speaker = normalized_df_speaker[speaker].copy()
+            
+            # 2. Treinar o modelo com TODAS as frases (sem filtrar nada antes)
+            # Isto garante que o output tem o MESMO tamanho do input
+            topics, probs = topic_model.fit_transform(textos_str)
+            
+            y_predicted_speaker[speaker] = np.array(topics)
+            n_clusters_speaker[speaker] = len(set(topics)) - (1 if -1 in topics else 0)
+            
+            # Extrai os nomes dos tópicos automaticamente
+            topic_info = topic_model.get_topic_info()
+            labels_speaker[speaker] = {}
+            for index, row in topic_info.iterrows():
+                topic_id = row['Topic']
+                if topic_id != -1:
+                    # Limpa o nome (ex: "0_fatura_pagamento_mes" -> "fatura - pagamento")
+                    palavras_validas = [word for word in row['Name'].split('_')[1:4] if word.strip()]
+                    nome_limpo = " - ".join(palavras_validas)
+                    labels_speaker[speaker][topic_id] = nome_limpo
+            
+            # Removida a linha do [-1] para não desalinhar a matriz!
+            centers_speaker[speaker] = None # BERTopic não usa centros matemáticos
+            normalized_df_speaker[speaker] = df_speaker.assign(clusters_speaker=y_predicted_speaker[speaker])
+            
+            # Guarda as utterances
+            clusters_speaker[speaker] = create_clusters_dic(y_predicted_speaker[speaker], textos_str, speaker)            
+            with open(os.path.join('./Resultados/' + diretoria, pickle_utterances_filenames_speaker[speaker]), 'wb') as file:
+                pickle.dump(clusters_speaker[speaker], file)
+
+        # SE FOR KMEANS OU DBSCAN
+        else:
+            if metric_to_optimize == "vmeasure":
+                if algorithm == "dbscan":
+                    y_predicted_speaker[speaker], n_clusters_speaker[speaker], params_speaker[speaker] = clustering_dbscan_vmeasure_optuna(vectors_speaker[speaker], pickle_filename_speakers[speaker], normalized_df_speaker[speaker], role= speaker)
+                else:
+                    y_predicted_speaker[speaker], centers_speaker[speaker], n_clusters_speaker[speaker], params_speaker[speaker] = clustering_kmeans_vmeasure_optuna(vectors_speaker[speaker], normalized_df_speaker[speaker], role= speaker, nomeFichPickle=pickle_filename_speakers[speaker],val=val)
+            elif metric_to_optimize == "silhouette":
+                if algorithm == "dbscan":
+                    y_predicted_speaker[speaker], metric_speaker[speaker], n_clusters_speaker[speaker], params_speaker[speaker] = clustering_dbscan_silhouette_optuna(vectors_speaker[speaker], nomeFichPickle=pickle_filename_speakers[speaker], role= speaker)
+                else:
+                    y_predicted_speaker[speaker], centers_speaker[speaker], metric_speaker[speaker], n_clusters_speaker[speaker], params_speaker[speaker] = clustering_kmeans_silhouette_optuna(vectors_speaker[speaker], role= speaker, metric='Silhouette', nomeFichPickle=pickle_filename_speakers[speaker])
+            
             # Guardar clusters
             if os.path.exists(pickle_utterances_filenames_speaker[speaker]):
                 with open(os.path.join('./Resultados/' + diretoria, pickle_utterances_filenames_speaker[speaker]), 'rb') as file:
@@ -2025,26 +2081,6 @@ else:
                 clusters_speaker[speaker] = create_clusters_dic(y_predicted_speaker[speaker], utterances_speaker[speaker], speaker)
                 with open(os.path.join('./Resultados/' + diretoria, pickle_utterances_filenames_speaker[speaker]), 'wb') as file:
                     pickle.dump(clusters_speaker[speaker], file)
-
-    elif metric_to_optimize == "silhouette":
-        for speaker in speakers:
-            if algorithm == "dbscan":
-                y_predicted_speaker[speaker], metric_speaker[speaker], n_clusters_speaker[speaker], params_speaker[speaker] = clustering_dbscan_silhouette_optuna(vectors_speaker[speaker], nomeFichPickle=pickle_filename_speakers[speaker], role= speaker)
-            else:
-                y_predicted_speaker[speaker], centers_speaker[speaker], metric_speaker[speaker], n_clusters_speaker[speaker], params_speaker[speaker] = clustering_kmeans_silhouette_optuna(vectors_speaker[speaker], role= speaker, metric='Silhouette', nomeFichPickle=pickle_filename_speakers[speaker])
-                
-            # Guardar clusters
-            if os.path.exists(pickle_utterances_filenames_speaker[speaker]):
-                with open(os.path.join('./Resultados/' + diretoria, pickle_utterances_filenames_speaker[speaker]), 'rb') as file:
-                    data = pickle.load(file)
-                    clusters_speaker[speaker] = data 
-            else:
-                clusters_speaker[speaker] = create_clusters_dic(y_predicted_speaker[speaker], utterances_speaker[speaker], speaker)
-                with open(os.path.join('./Resultados/' + diretoria, pickle_utterances_filenames_speaker[speaker]), 'wb') as file:
-                    pickle.dump(clusters_speaker[speaker], file)
-
-    elif metric_to_optimize == "NONE":
-        pass
 
 def gerar_heatmap(matriz_df, diretorio_saida, nome_ficheiro, titulo="Transition Probability Matrix"):
     """
@@ -2057,17 +2093,17 @@ def gerar_heatmap(matriz_df, diretorio_saida, nome_ficheiro, titulo="Transition 
 
     print(f"\nA gerar Heatmap: {nome_ficheiro}...")
 
-    # ADICIONAR ESTA LINHA: Fazer uma cópia para não estragar o grafo da interface!
+    # Fazer uma cópia para não estragar o grafo da interface!
     matriz_plot = matriz_df.copy()
 
-    # 1. Limpar os nomes gigantes (Ficar só com o que está depois do "->")
+    # Limpar os nomes gigantes (Ficar só com o que está depois do "->")
     clean_index = matriz_plot.index.to_series().apply(lambda x: str(x).split('->')[-1].strip())
     clean_columns = matriz_plot.columns.to_series().apply(lambda x: str(x).split('->')[-1].strip())
     
     matriz_plot.index = clean_index
     matriz_plot.columns = clean_columns
 
-    # 2. Filtrar linhas e colunas que sejam APENAS 0.00
+    # Filtrar linhas e colunas que sejam APENAS 0.00
     matriz_plot = matriz_plot.loc[(matriz_plot > 0).any(axis=1)] 
     matriz_plot = matriz_plot.loc[:, (matriz_plot > 0).any(axis=0)] 
 
@@ -2075,11 +2111,10 @@ def gerar_heatmap(matriz_df, diretorio_saida, nome_ficheiro, titulo="Transition 
         print("Heatmap ignorado: A matriz ficou vazia após remover os zeros.")
         return
 
-    # 3. Ajuste Dinâmico de Tamanho
     tamanho_figura = max(8, len(matriz_plot.columns) * 0.8)
     plt.figure(figsize=(tamanho_figura, tamanho_figura)) 
     
-    # 4. Desenhar o Heatmap (Substituir matriz_df por matriz_plot)
+    # 4. Desenhar o Heatmap
     ax = sns.heatmap(
         matriz_plot, 
         annot=True, 
@@ -2092,12 +2127,9 @@ def gerar_heatmap(matriz_df, diretorio_saida, nome_ficheiro, titulo="Transition 
         square=True
     )
     
-    # 5. Textos em Inglês
     plt.title(titulo, fontsize=16, fontweight='bold', pad=20)
     plt.xlabel("Target State", fontsize=13, fontweight='bold', labelpad=15)
     plt.ylabel("Source State", fontsize=13, fontweight='bold', labelpad=15)
-    
-    # Rotação das labels para leitura perfeita
     plt.xticks(rotation=45, ha='right', fontsize=11)
     plt.yticks(rotation=0, fontsize=11)
     
@@ -2110,9 +2142,7 @@ def gerar_heatmap(matriz_df, diretorio_saida, nome_ficheiro, titulo="Transition 
     
     print(f"Heatmap guardado com sucesso em: {caminho_completo}")
 
-# ==============================================================================
 # CÁLCULO DE MÉTRICAS
-# ==============================================================================
 
 cluster_counts_speaker = {}
 silhouette_speaker = {}
@@ -2125,7 +2155,7 @@ df_final = pd.concat([normalized_df_speaker[speaker] for speaker in speakers])
 for speaker in speakers:
     cluster_col_name = f'clusters_speaker_{speaker}'
 
-    # Garantir que a coluna existe (importante para o modo keywords)
+    # Garantir que a coluna existe
     if cluster_col_name not in normalized_df_speaker[speaker].columns and speaker in y_predicted_speaker:
         normalized_df_speaker[speaker][cluster_col_name] = y_predicted_speaker[speaker]
 
@@ -2301,7 +2331,8 @@ else:
 
 # ### Labelling dos clusters
 # Só corre os algoritmos de labelling se NÃO estivermos no modo 'keywords'
-if labelling != "keywords":
+if labelling != "keywords" and algorithm != "bertopic":
+#if labelling != "keywords":
     print(f"A executar labelling automático: {labelling}")
     n_grams = 3
     n_entries = 1
@@ -2873,8 +2904,10 @@ if "Median_Binary" in colunas_totais:
     # 2. Normalizar Sentimento
     combined_df['Median_Binary'] = ((combined_df['Median_Binary'] + 1) / 2).fillna(0.5)
     combined_df['avg_sentiment'] = 0.5
-    combined_df["std_sent_max"] = np.nan
-    combined_df["std_sent_min"] = np.nan
+    
+    # [O TRUQUE DA GENERICIDADE] Inicializar as colunas de cores explicitamente como TEXTO ('object')
+    combined_df["std_sent_max"] = pd.Series(dtype='object')
+    combined_df["std_sent_min"] = pd.Series(dtype='object')
 
     # Preenche NaNs com -1 e força a coluna inteira a ser inteiro
     combined_df['n_clusters_final'] = combined_df['n_clusters_final'].fillna(-1).astype(int)
@@ -2889,15 +2922,19 @@ if "Median_Binary" in colunas_totais:
         avg_sent = cluster_df[sentiment_cluster].mean()
         std_sent = cluster_df[sentiment_cluster].std() if len(cluster_df) > 1 else 0.0
         
-        # Atribuir cores
+        # Atribuir cores (Agora o Pandas já aceita as strings hexadecimais '#RRGGBB')
         combined_df.loc[cluster_df.index, "std_sent_max"] = colorize_sentiment_v2(avg_sent + std_sent)
         combined_df.loc[cluster_df.index, "std_sent_min"] = colorize_sentiment_v2(avg_sent - std_sent)
         combined_df.loc[cluster_df.index, "avg_sentiment"] = avg_sent
 
+    # [GARANTIA] Devolver as colunas calculadas aos dataframes originais para o resto do código não falhar
+    df_final = combined_df[combined_df['Tipo'].astype(str).str.lower() != 'ação'].copy()
+    df_acoes = combined_df[combined_df['Tipo'].astype(str).str.lower() == 'ação'].copy()
+
     print("Cálculo de cores concluído.")
 
 else:
-    print("Coluna 'Median_Binary' não encontrada. A saltar o cálculo do sentimento.")
+    print("Coluna 'Median_Binary' não encontrada. A saltar o cálculo do sentimento e cores.")
 
 
 def traverse(dataframe, threshold, InputGraph, df_final, SOD_NAME, EOD_NAME): 
@@ -3628,7 +3665,6 @@ Auto-Loops | {taxa_self_loops:>20.2f} % | Taxa de repetição no mesmo estado
 Nó Central | {no_principal:<22} | Categoria dominante do texto
 ============================================================"""
 
-        # 1. Mostrar no ecrã
         print(tabela, flush=True)
 
         # Vai usar o mesmo nome do ficheiro .dot, mas muda para _metricas.txt
@@ -3937,7 +3973,6 @@ normalized_df_test['Speaker'] = normalized_df_test['Speaker'].apply(
     lambda x: x if x in speakers else 'Others'
 )
 
-# Inicializações
 y_predicted_test_speaker = {}
 df_test_speaker = {}
 utterances_test_speaker = {}
@@ -3976,7 +4011,7 @@ if algorithm != "keywords":
                             break
                     except: pass
 else:
-    print(">>> [Keywords] Modelos de IA não serão carregados.")
+    print("[Keywords] Modelos de IA não serão carregados.")
 
 for speaker in speakers:
     print(f"A processar speaker: {speaker}...")
@@ -4076,7 +4111,7 @@ print("Chegou aqui sem erros!")
 
 
 def extrair_label_puro(nome_no):
-    # Remove contagens tipo (96) do final para bater certo com o Excel
+    # Remove contagens tipo do final para bater certo com o Excel
     match = re.search(r'^(.+?)(?:\s*\(\d+\))?$', str(nome_no))
     if match:
         return match.group(1).strip()
@@ -4098,8 +4133,6 @@ if abs(total_falas_no_df - total_falas_nos_clusters) < 50:
     print("O grafo contém os dados de treino!")
 else:
     print("Há uma discrepância grande. Verifica se as 'Ações' estão a ser contadas.")
-print("=================================================================\n")
-
 
 # 1. DEFINIÇÃO DAS FUNÇÕES DE CÁLCULO (FF1)
 import Levenshtein
@@ -4169,7 +4202,6 @@ def flow_f1(result, test_paths, df_referencia, diretoria):
     return ff1
 
 def converter_dialogos_para_caminhos(dados, y_predicted_speaker, labels_speaker, speakers):
-    """Transforma o DataFrame de teste numa lista de caminhos (strings)."""
     test_paths = []
     
     # Se labels_speaker estiver vazio, tenta recuperar
@@ -4244,8 +4276,6 @@ elif 'result' in locals() and 'df_final_test' in locals() and not df_final_test.
         traceback.print_exc()
 else:
     print("A saltar o cálculo de FF1: Falta o grafo ou dados de teste.")
-
-print("=================================================================\n")
 
 def save_graph_and_variables(graph, variable_name, diretoria):
     base_path = os.path.join('./Resultados', diretoria)
@@ -4708,7 +4738,6 @@ def save_graph_and_variables(graph, variable_name, diretoria):
     except Exception as e:
         print(f"Aviso: Não foi possível gerar o PDF. Erro: {e}")
 
-    # ADICIONAR errors="ignore" 
     with open(dot_filename, "r", encoding="utf-8", errors="ignore") as f:
         lines = f.readlines()
     
@@ -4783,7 +4812,7 @@ def upload_dot():
     if not pkl_filename:
         return jsonify({"error": "A referência variables_file não foi encontrada no .dot"}), 400
 
-    # 2. Procurar o ficheiro .pkl dinamicamente dentro da pasta Resultados!
+    # 2. Procurar o ficheiro .pkl dentro da pasta Resultados
     import glob
     found_pkls = glob.glob(f'./Resultados/*/{pkl_filename}')
     
@@ -4811,7 +4840,7 @@ def upload_dot():
     for spk in vars_loaded.get('speakers', []):
         colors_map[spk] = atribuir_cor(spk)
 
-    # 4. Devolver TUDO atualizado ao JavaScript!
+    # 4. Devolver TUDO atualizado ao JavaScript
     return jsonify({
         'dot_code': dot_code,
         'speakers': vars_loaded.get('speakers', []), 
@@ -5152,7 +5181,6 @@ metricas_html = f"""
 </div>
 """
 
-#----------------------------------------------------------------------
 #clusters_speaker = None
 thresholds = np.arange(0.0, 1.01, 0.1)
 threshold_values = [round(t, 2) for t in thresholds]
@@ -6049,9 +6077,7 @@ html_content = f"""
         }});
     }}
 
-    // =========================================================
-    // 8. HIGHLIGHT DE VIZINHOS
-    // =========================================================
+    // HIGHLIGHT DE VIZINHOS
     function enableNeighborHighlight(svgElement) {{
         if (!document.getElementById("highlight-style")) {{
             const highlightStyle = document.createElement('style');
@@ -6332,9 +6358,18 @@ html_content = f"""
                     }}
 
                     // Procura ID no Dicionário Labels
+                    // Procura ID no Dicionário Labels (Fuzzy Match Seguro)
                     if (dictLabels[speakerName]) {{
+                        // Limpa a label do grafo: tira espaços, traços e põe minúsculas
+                        let cleanLabelLimpa = labelLimpa.toLowerCase().replace(/[^a-z0-9]/g, "");
+                        
                         for (let id in dictLabels[speakerName]) {{
-                            if (dictLabels[speakerName][id].trim() === labelLimpa) {{
+                            // Limpa a label do dicionário da mesma forma
+                            let cleanDictLabel = dictLabels[speakerName][id].toLowerCase().replace(/[^a-z0-9]/g, "");
+                            
+                            // Fazemos apenas o match exato das strings limpas! 
+                            // Isto impede o "Compreendi!" de infetar os outros nós.
+                            if (cleanLabelLimpa !== "" && cleanDictLabel === cleanLabelLimpa) {{
                                 clusterId = id;
                                 break;
                             }}
@@ -6358,7 +6393,6 @@ html_content = f"""
                         listaFrases = dictFalas[speakerDicionario][clusterId];
                     }}
 
-                    // Lógica do Conteúdo
                     if (listaFrases.length > 0) {{
                         let frasesUnicas = [...new Set(listaFrases)].sort(() => 0.5 - Math.random());
                         
@@ -6723,7 +6757,7 @@ html_content = f"""
                     n_edges = svg.querySelectorAll("g.edge").length;
 
                     allNodes.forEach(node => {{
-                        // Mesma lógica: polígono = ação, elipse = diálogo
+                        // polígono = ação, elipse = diálogo
                         if (node.querySelector("polygon") && !node.querySelector("ellipse")) {{
                             n_actions++;
                         }} else {{
@@ -7098,16 +7132,13 @@ html_content = f"""
         }});
     }});
 
-    // Arranque Inicial
     document.addEventListener("DOMContentLoaded", () => {{
         if (typeof dotCode !== 'undefined') {{
             renderNewDot(dotCode);
         }}
     }});
 
-    // =========================================================
     // MODAL DO HEATMAP
-    // =========================================================
     const modalHeatmap = document.getElementById("heatmapModal");
     const btnHeatmap = document.getElementById("btn-heatmap");
     const closeHeatmap = document.getElementById("closeHeatmap");
@@ -7143,7 +7174,7 @@ html_content = f"""
 </html>
 """
 
-# Criar o nome do ficheiro HTML automaticamente (usando as variáveis que já definimos lá em cima)
+# Criar o nome do ficheiro HTML automaticamente
 nome_base = str(filename).split('.')[0]
 nome_html = f"Interface_{nome_base}.html"
 
@@ -7309,9 +7340,7 @@ def gerar_fluxo_hierarquico(df_atual, diretoria_out, nome_ficheiro, titulo_grafo
 #     print(f"Erro na chamada da função: {e}")
 # -----------------------------------
 
-# ==============================================================
-# 1. FUNÇÕES AUXILIARES (Definir antes de usar)
-# ==============================================================
+# 1. FUNÇÕES AUXILIARES
 def validar_matematica_transicoes(df_atual, linha_origem=4, ato_origem='FIGURATION'):
     print(f"Teste para analisar a transição da Linha {linha_origem} ({ato_origem}) para a Linha {linha_origem + 1}\n")
     
@@ -7360,9 +7389,7 @@ def validar_matematica_transicoes(df_atual, linha_origem=4, ato_origem='FIGURATI
         print(f"   {quantidade} / {total_origem} = {probabilidade:.2f} ({probabilidade*100:.0f}%)")
 
 
-# ==============================================================
-# 2. GERAÇÃO DO FLUXO HIERÁRQUICO (APENAS PARA POESIA)
-# ==============================================================
+# GERAÇÃO DO FLUXO HIERÁRQUICO (APENAS PARA POESIA)
 if TIPO_DATASET == "POESIA":
     try:
         modelo_original = MODELOS[0] if 'MODELOS' in locals() and MODELOS else "Modelo"
@@ -7386,19 +7413,16 @@ if TIPO_DATASET == "POESIA":
     except Exception as e:
         print(f"Erro na geração do fluxo de poesia: {e}")
 else:
-    print(f"\n>>> Fluxo Hierárquico e validação ignorados (dataset no modo '{TIPO_DATASET}').")
+    print(f"\nFluxo Hierárquico e validação ignorados (dataset no modo '{TIPO_DATASET}').")
 
 
-# ==============================================================
-# 3. LIMPEZA DE FICHEIROS TEMPORÁRIOS
-# ==============================================================
+# LIMPEZA DE FICHEIROS TEMPORÁRIOS
 directory = './Resultados/' + diretoria
 files_to_keep = (".csv", ".pdf", ".xlsx", ".txt", ".png", ".json", ".html", ".dot", ".pkl")
 
 if os.path.exists(directory):
     for file in os.listdir(directory):
         file_path = os.path.join(directory, file)
-        # Apaga o que não terminar nestas extensões valiosas
         if os.path.isfile(file_path) and not file.lower().endswith(files_to_keep):
             try:
                 os.remove(file_path)
@@ -7407,9 +7431,7 @@ if os.path.exists(directory):
                 print(f"Erro ao apagar {file}: {e}")
 
 
-# ==============================================================
-# 4. INÍCIO DO SERVIDOR FLASK (TEM DE SER A ÚLTIMA COISA!)
-# ==============================================================
+# 4. INÍCIO DO SERVIDOR FLASK
 print("\nO servidor Flask está a iniciar na porta 5051...")
 try:
     app.run(host='0.0.0.0', port=5051, debug=False, use_reloader=False)
