@@ -76,6 +76,8 @@ import unicodedata
 import warnings
 warnings.filterwarnings("ignore")
 
+os.environ["LOKY_MAX_CPU_COUNT"] = "4"
+
 # ### Modelos de Sentence Transformers
 
 # %%
@@ -108,16 +110,16 @@ algorithm = "kmeans"
 #algorithm = "none"
 
 # Labelling
-#labelling = "kbert"
+labelling = "kbert"
 #labelling = "keywords"
 #labelling = "verbs"
 #labelling = "closest"
-labelling = "llm"
+#labelling = "llm"
 #labelling = "none"
 
 labelling_for_excel = [
     #"kbert",
-    "llm",
+    #"llm",
     #"verbs",
     #"closest",
     # "none"
@@ -132,27 +134,29 @@ metric_to_optimize = "silhouette"
 #filename = "DAs_train_emo.csv"
 #filename = "MRDA_train.csv"
 #filename = "Estado_Da_Nacao_21_julho_2021_falas_separadas.xlsx"
-#filename = "Estado_da_Nacao_2025_CERTO.xlsx"
+#filename = "Estado_Da_Nacao_2026.xlsx"
 #filename = "Estado_Da_Nacao_17_julho_2025.xlsx"
-filename = "24_TREINO_new.xlsx"
+#filename = "SONAE24_GERADO_TREINO.xlsx"
 #filename = "Estado_Da_Nacao_17_julho_2024.xlsx"
 #filename = "Estado_Da_Nacao_20_julho_2023.xlsx"
 #filename = "Estado_Da_Nacao_20_julho_2022.xlsx"
 #filename = "Estado_Da_Nacao_21_julho_2021.xlsx"
-#filename = "24_TREINO.xlsx"
+filename = "24_TREINO_new.xlsx"
 #filename = "DATASET_FINAL.xlsx"
 #filename = "dataset_short_paper_FINAL.xlsx"
 
 # Datasets de teste
 #filename_test = "DAs_test_emo.csv"
 #filename_test = "MRDA_test.csv"
-#filename_test = "Estado_Da_Nacao_21_julho_2021_falas_separadas.xlsx"
+#filename_test = "Estado_Da_Nacao_2026.xlsx"
+#filename_test = "Estado_Da_Nacao_17_julho_2025.xlsx"
+#filename_test = "Estado_Da_Nacao_17_julho_2024.xlsx"
 #filename_test = "Estado_Da_Nacao_20_julho_2023.xlsx"
 #filename_test = "Estado_Da_Nacao_20_julho_2022.xlsx"
 #filename_test = "Estado_Da_Nacao_21_julho_2021.xlsx"
-#filename_test = "Estado_Da_Nacao_17_julho_2025.xlsx"
+#filename_test = "Estado_Da_Nacao_2026_taxonomia_BINARIA.xlsx"
+#filename_test = "SONAE24_GERADO_TESTE.xlsx"
 filename_test = "24_TESTE_new.xlsx"
-#filename_test = "24_TESTE.xlsx"
 #filename_test = "DATASET_FINAL.xlsx"
 #filename_test = "dataset_short_paper_FINAL.xlsx"
 
@@ -161,7 +165,7 @@ TIPO_DATASET = "GENERICO"
 
 #Valores de Threshold
 #threshold = [0, 0.05, 0.1, 0.15, 0.2]
-threshold = [0]
+threshold = [0.05]
 
 # Beta V-measure
 beta = 1
@@ -172,6 +176,7 @@ MAPA_SPEAKERS = {}
 
 #Se queremos colocar na label a contagem do número de utterances por cluster
 count_utterances_label = False
+RUN_GFLOWNET = True
 
 #Sentimento do system (True = Transições com sentimento (cor)); False: Transições sem sentimento (a preto))
 sentiment_system = True
@@ -213,11 +218,11 @@ INCLUIR_OUTROS = False
 
 if TIPO_DATASET == "POLITICA":
     #Dividir por categorias
-    ENTIDADES_A_PROCESSAR = {
-        "Esquerda": ["BE", "PCP", "PEV", "L", "PS"],
-        "Direita": ["IL", "PSD", "CDS-PP", "CH"],
-        "Outros_Partidos": ["PAN", "JPP"]
-    }
+    #ENTIDADES_A_PROCESSAR = {
+    #    "Esquerda": ["BE", "PCP", "PEV", "L", "PS"],
+    #    "Direita": ["IL", "PSD", "CDS-PP", "CH"],
+    #    "Outros_Partidos": ["PAN", "JPP"]
+    #}
 
     # Meter só dois partidos
     #ENTIDADES_A_PROCESSAR = {
@@ -226,19 +231,19 @@ if TIPO_DATASET == "POLITICA":
     #}
 
     # Todos os partidos separados
-    #ENTIDADES_A_PROCESSAR = {
-    #    "PS": ["PS"], 
-    #    "PSD": ["PSD"], 
-    #    "CH": ["CH"], 
-    #    "IL": ["IL"],
-    #    "BE": ["BE"], 
-    #    "PCP": ["PCP"], 
-    #    "L": ["L"], 
-    #    "PAN": ["PAN"], 
-    #    "CDS-PP": ["CDS-PP"], 
-    #    "PEV": ["PEV"], 
-    #    "JPP": ["JPP"]
-    #}
+    ENTIDADES_A_PROCESSAR = {
+        "PS": ["PS"], 
+        "PSD": ["PSD"], 
+        "CH": ["CH"], 
+        "IL": ["IL"],
+        "BE": ["BE"], 
+        "PCP": ["PCP"], 
+        "L": ["L"], 
+        "PAN": ["PAN"], 
+        "CDS-PP": ["CDS-PP"], 
+        "PEV": ["PEV"], 
+        "JPP": ["JPP"]
+    }
 
     # Governo
     #BLOCO_MODERADOR = ["Presidente"]
@@ -248,12 +253,12 @@ if TIPO_DATASET == "POLITICA":
     # Se 'True', qualquer speaker que não esteja em ENTIDADES_A_PROCESSAR
     # será agrupado num único nó chamado "Outros".
     # Se 'False', eles serão simplesmente removidos do grafo.
-    #INCLUIR_OUTROS = False
+    INCLUIR_OUTROS = False
 
 n_nodes = 0
 
 # Validation
-val = {"validation":False, "val_filename":"24_TREINO.xlsx", "val_filename_test":"24_TREINO.xlsx", "val_model":"all-MiniLM-L6-v2"}
+val = {"validation":False, "val_filename":"Estado_Da_Nacao_2026_taxonomia_BINARIA.xlsx", "val_filename_test":"Estado_Da_Nacao_2026_taxonomia_BINARIA.xlsx", "val_model":"all-MiniLM-L6-v2"}
 
 
 def normalize_dataset(df_initial, regex=None, removeGreetings=None, speaker=None):
@@ -400,20 +405,20 @@ def mapear_entidade_dinamica(row, ano, gov_partido, entidades_map, incluir_outro
     partido_nome = str(row.get('Partido', ''))
     tipo = str(row.get('Tipo', ''))
 
-    # 1. Tratar de Ações
+    # Tratar de Ações
     if tipo.lower() == 'ação':
         return 'Acao' 
 
-    # 2. Tratar do Governo (pelo nome do Speaker)
+    # Tratar do Governo (pelo nome do Speaker)
     for gov_speaker in BLOCO_GOVERNO_SPEAKERS:
         if gov_speaker in speaker_nome:
             return "GOV"
             
-    # 3. Tratar do Presidente
+    # Tratar do Presidente
     if any(mod in speaker_nome for mod in BLOCO_MODERADOR):
         return "Presidente" 
         
-    # 4. Tratar dos Partidos
+    # Tratar dos Partidos
     partido_real = partido_nome if pd.notna(partido_nome) and partido_nome else speaker_nome
     
     partido_real_upper = partido_real.upper()
@@ -603,7 +608,7 @@ def clustering_bertopic_optuna(vectors, utterances, role, metric, nomeFichPickle
 #CLUSTERING -> K-MEANS
 def objective_kmeans_silhouette(trial, vectors):
     # Codifica as frases usando o modelo selecionado
-    n_clusters = trial.suggest_int('n_clusters', 3, 10)
+    n_clusters = trial.suggest_int('n_clusters', 2, 6)
     init_method = trial.suggest_categorical('init_method', ['k-means++', 'random'])
     n_init = trial.suggest_int('n_init', 1, 30)
     tol = trial.suggest_float('tol', 1e-4, 1e-1, log=True)
@@ -700,7 +705,7 @@ def clustering_kmeans_silhouette_optuna(vectors, role, metric, nomeFichPickle):
 #PARA DIALOGUE ACTS
 def objective_kmeans_vmeasure(trial, vectors, normalized_df):
     # Defino os parâmetros do KMeans a serem otimizados
-    n_clusters = trial.suggest_int('n_clusters', 3, 10)
+    n_clusters = trial.suggest_int('n_clusters', 2, 6)
     init_method = trial.suggest_categorical('init_method', ['k-means++', 'random'])
     n_init = trial.suggest_int('n_init', 1, 30)
     tol = trial.suggest_float('tol', 1e-4, 1e-1, log=True)
@@ -863,7 +868,7 @@ def clustering_kmeans_vmeasure_optuna(vectors, normalized_df, role, nomeFichPick
 #CLUSTERING -> K-MEANS
 def objective_kmeans_nova_func(trial, vectors, n_clusters_ant, best_silhouette):
     n_clusters_ideal = 5
-    n_clusters = trial.suggest_int('n_clusters', 3, 10)
+    n_clusters = trial.suggest_int('n_clusters', 2, 6)
     init_method = trial.suggest_categorical('init_method', ['k-means++', 'random'])
     n_init = trial.suggest_int('n_init', 1, 30)
     tol = trial.suggest_float('tol', 1e-4, 1e-1, log=True)
@@ -1457,10 +1462,12 @@ def describe_clusters_LLM(y_predicted, normalized_df, ollama_url):
 
     list_LLM = []
     list_clusters = [] 
+    
+    # Criar uma lista simples para passar ao prompt
+    already_used_labels = []
 
     cluster_ids = sorted(list(set(y_predicted)))
     
-    # Inicializa o LLM fora do loop para ser mais rápido
     llm = Ollama(base_url=ollama_url, model="llama3", temperature=0.1, num_predict=50)
     
     print(f"\n[LLM] A gerar rótulos para {len(cluster_ids)} clusters...")
@@ -1472,41 +1479,42 @@ def describe_clusters_LLM(y_predicted, normalized_df, ollama_url):
         
         subset_length = min(30, len(corpus))
         subset = random.sample(corpus, subset_length)
+        data = '; '.join(subset)
 
         prompt = "Por favor, atribua um rótulo (label), em PT-PT, que capture as ações principais deste grupo de falas: '"
         prompt_end = "'. Responda apenas com o rótulo, use este formato Rótulo: {seu_rótulo}, e use no máximo três palavras."
-        data = ';'.join(subset)
+
+        # 1. PROMPT MUITO MAIS FORTE E COM MEMÓRIA
+        used_labels_str = ", ".join(already_used_labels) if already_used_labels else "Nenhum ainda"
         
+        prompt = f"""Por favor, atribua um rótulo (label), em PT-PT, que capture as ações principais do seguinte grupo de falas.
+REGRAS OBRIGATÓRIAS:
+1. O rótulo tem de ser específico.
+2. Não podes usar palavras genéricas.
+3. Não deves usar qualquer um destes rótulos que já foram criados: [{used_labels_str}].
+4. Usa no máximo 4 palavras.
+5. Responda apenas no formato Rótulo: {{seu_rótulo}}
+
+Falas: '{data}'"""
+
         try:
-            response = llm.generate([prompt + data + prompt_end])
+            response = llm.generate([prompt])
             keywords = response.generations[0][0].text
 
-            pattern = r"Label:\s*(.+?)(?:[\n.:;,]|$)"
-            pattern2 = r"\s*(.+?)(?:[\n.:;,]|$)"
-            label = keywords
+            pattern = r"(?i)(?:Rótulo|Label):\s*(.+?)(?:[\n.:;,]|$)"
+            
             match = re.search(pattern, keywords)
-            split_keywords = keywords.split(':', 1)
-
+            
             if match:
                 label = match.group(1).strip().replace('"', '')
-            elif len(split_keywords) > 1:
-                label_part = split_keywords[1]
-                match2 = re.search(pattern2, label_part)
-                if match2:
-                    label = match2.group(1).strip().replace('"', '')
-                else:
-                    label = label_part.strip().replace('"', '') 
             else:
-                label = label.strip().replace('"', '')
+                # Fallback se ele não usar o prefixo
+                label = keywords.strip().replace('"', '')[:30] # Limitar tamanho por segurança
                 
         except Exception as e:
             print(f"Erro ao comunicar com Ollama no cluster {cluster_id}: {e}")
-            label = f"Tópico {cluster_id}"
+            label = f"Topico Operacional {cluster_id}"
 
-        # -----------------------------------------------------
-        # O TRUQUE ANTI-LOOP INFINITO
-        # Se a label já existir, acrescentamos um número à frente
-        # -----------------------------------------------------
         base_label = label
         counter = 2
         while [label] in list_LLM:
@@ -1515,6 +1523,7 @@ def describe_clusters_LLM(y_predicted, normalized_df, ollama_url):
 
         list_LLM.append([label])
         list_clusters.append(cluster_id)
+        already_used_labels.append(label) # Atualiza a memória do LLM
         
         print(f" -> Cluster {cluster_id}: {label}")
 
@@ -1729,7 +1738,7 @@ if TIPO_DATASET == "GENERICO":
             (dados['Temperatura'] == TEMP)
         ]
     else:
-        print(">>> Aviso: Colunas Modelo, Lingua, Temp não encontradas. Filtro ignorado.")
+        print("Colunas Modelo, Lingua, Temp não encontradas.")
         NOME_DO_GRUPO = "All Domains"
 
     if FILTRO_EXTRA_COLUNA != "" and FILTRO_EXTRA_COLUNA in dados.columns:
@@ -1978,10 +1987,10 @@ if labelling == "keywords":
         
         df_atual[coluna_alvo] = df_atual[coluna_alvo].fillna('Outros').astype(str).str.strip()
         
-        # 2. Transformar categorias em números
+        # Transformar categorias em números
         codes, uniques = pd.factorize(df_atual[coluna_alvo])
         
-        # 3. Guardar nas variáveis globais
+        # Guardar nas variáveis globais
         y_predicted_speaker[speaker] = codes
         n_clusters_speaker[speaker] = len(uniques)
         
@@ -1993,7 +2002,7 @@ if labelling == "keywords":
         
         params_speaker[speaker] = {"method": "keywords_excel", "n_clusters": len(uniques)}
         
-        # 4. Criar dicionário de utterances e guardar pickle
+        # Criar dicionário de utterances e guardar pickle
         clusters_speaker[speaker] = create_clusters_dic(codes, utterances_speaker[speaker], speaker)
         
         with open(os.path.join('./Resultados/' + diretoria, pickle_utterances_filenames_speaker[speaker]), 'wb') as file:
@@ -2006,7 +2015,7 @@ else:
     for speaker in speakers:
         # SE FOR BERTOPIC
         if algorithm == "bertopic":
-            print(f"\n>>> [{speaker}] A usar BERTopic (Clustering + Labelling Automático)...")
+            print(f"\n [{speaker}] A usar BERTopic (Clustering + Labelling Automático)...")
             from bertopic import BERTopic
             from sklearn.feature_extraction.text import CountVectorizer
             from bertopic.representation import KeyBERTInspired
@@ -2114,7 +2123,7 @@ def gerar_heatmap(matriz_df, diretorio_saida, nome_ficheiro, titulo="Transition 
     tamanho_figura = max(8, len(matriz_plot.columns) * 0.8)
     plt.figure(figsize=(tamanho_figura, tamanho_figura)) 
     
-    # 4. Desenhar o Heatmap
+    # Desenhar o Heatmap
     ax = sns.heatmap(
         matriz_plot, 
         annot=True, 
@@ -2148,10 +2157,10 @@ cluster_counts_speaker = {}
 silhouette_speaker = {}
 aux_y_predicted_speaker = {}
 
-# 1. Concatenar tudo num único DataFrame (df_final)
+# Concatenar tudo no df_final
 df_final = pd.concat([normalized_df_speaker[speaker] for speaker in speakers])
 
-# 2. Calcular Contagens e Silhouette
+# Calcular Contagens e Silhouette
 for speaker in speakers:
     cluster_col_name = f'clusters_speaker_{speaker}'
 
@@ -2221,7 +2230,7 @@ nltk.download('punkt')
 nltk.download('punkt_tab')
 
 # Tokenizar e contar o número de tokens em cada 'utterance' para o df_final
-df_final['word_count'] = df_final['utterance'].apply(lambda x: len(word_tokenize(x)))
+df_final['word_count'] = df_final['utterance'].apply(lambda x: len(word_tokenize(str(x))) if pd.notna(x) else 0)
 
 # Calcular a média e o desvio padrão do número de palavras por cluster
 stats_word_count_speaker = {}
@@ -2276,7 +2285,7 @@ if statistics and 'Median_Binary' in df_final.columns:
 else:
     print("Coluna 'Median_Binary' não encontrada. Estatísticas de sentimento não serão calculadas.")
 
-#------------------ TEMPOS DE FALA --------------------
+# TEMPOS DE FALA
 if 'time_since_start' in df_final.columns and 'time_since_previous' in df_final.columns:
     speaker_avg_time_since_start_per_fala = {}
     speaker_avg_time_since_previous_per_fala = {}
@@ -2329,7 +2338,7 @@ if 'time_since_start' in df_final.columns and 'time_since_previous' in df_final.
 else:
     print("As colunas 'time_since_start' e/ou 'time_since_previous' não estão presentes no dataset.")
 
-# ### Labelling dos clusters
+# Labelling dos clusters
 # Só corre os algoritmos de labelling se NÃO estivermos no modo 'keywords'
 if labelling != "keywords" and algorithm != "bertopic":
 #if labelling != "keywords":
@@ -2455,7 +2464,7 @@ if labelling != "keywords" and algorithm != "bertopic":
                 centroide_result = describe_clusters_closest(normalized_df_speaker[speaker], y_predicted_speaker[speaker], vectors_speaker[speaker], centers_speaker[speaker], n_clusters_speaker[speaker])
                 labels_speaker[speaker] = centroide_result['labels'].to_dict()
 
-    # --- TABELA DE COMPARAÇÃO (EXCEL) ---
+    # TABELA DE COMPARAÇÃO
     print("A gerar tabela de comparação de labels...")
     all_labels_merged = []
     
@@ -2511,13 +2520,13 @@ if labelling != "keywords" and algorithm != "bertopic":
         print(f"Tabela de comparação salva em: {output_path}")
 
 else:
-    print(">>> Modo KEYWORDS detetado: O labelling automático (KeyBERT/LLM) foi ignorado.")
+    print(" Modo KEYWORDS detetado: O labelling automático (KeyBERT/LLM) foi ignorado.")
     print("    As labels usadas serão as categorias do Excel ('Cooperação', 'Conflito').")
 
 # CLUSTERING PARA AS AÇÕES
 print("A processar ações (Speaker + Ação)...")
 
-# 1. Carregar RAW data para garantir que temos os Speakers originais
+# Carregar RAW data para garantir que temos os Speakers originais
 df_acoes = dados[dados["Tipo"].astype(str).str.lower() == "ação"].copy()
 
 if df_acoes.shape[0] > 0:
@@ -2652,7 +2661,7 @@ regex_padrao_tempo = r"^Eram \d+ horas"
 regex_extracao_tempo = r"(\d+\s*horas?(?: e \d+\s*minutos?)?)"
 
 if not df_todas_acoes.empty:
-    # --- Encontrar o NOME DO SOD ---
+    # Encontrar o NOME DO SOD
     primeiras_acoes = df_todas_acoes.groupby('dialogue_id').first()
     primeiras_acoes_tempo = primeiras_acoes[
         primeiras_acoes['Ação'].astype(str).str.contains(regex_padrao_tempo, na=False)
@@ -2706,7 +2715,6 @@ print(f"Nó de início (SOD) ID: {SOD_NAME} | Rótulo: {SOD_LABEL.replace(chr(10
 print(f"Nó de fim (EOD) ID: {EOD_NAME} | Rótulo: {EOD_LABEL.replace(chr(10), ' // ')}")
 
 # CONSTRUIR GRAFO
-
 # Garantir que os labels estejam na mesma ordem
 labels_type_speaker_ordered = {}
 for speaker in speakers:
@@ -2898,14 +2906,14 @@ colunas_totais = pd.concat([df_final, df_acoes]).columns
 if "Median_Binary" in colunas_totais:
     print("A calcular sentimentos e cores...")
     
-    # 1. Concatenar
+    # Concatenar
     combined_df = pd.concat([df_final, df_acoes], ignore_index=True)
     
-    # 2. Normalizar Sentimento
+    # Normalizar Sentimento
     combined_df['Median_Binary'] = ((combined_df['Median_Binary'] + 1) / 2).fillna(0.5)
     combined_df['avg_sentiment'] = 0.5
     
-    # [O TRUQUE DA GENERICIDADE] Inicializar as colunas de cores explicitamente como TEXTO ('object')
+    # Inicializar as colunas de cores explicitamente como TEXTO ('object')
     combined_df["std_sent_max"] = pd.Series(dtype='object')
     combined_df["std_sent_min"] = pd.Series(dtype='object')
 
@@ -2922,12 +2930,12 @@ if "Median_Binary" in colunas_totais:
         avg_sent = cluster_df[sentiment_cluster].mean()
         std_sent = cluster_df[sentiment_cluster].std() if len(cluster_df) > 1 else 0.0
         
-        # Atribuir cores (Agora o Pandas já aceita as strings hexadecimais '#RRGGBB')
+        # Atribuir cores
         combined_df.loc[cluster_df.index, "std_sent_max"] = colorize_sentiment_v2(avg_sent + std_sent)
         combined_df.loc[cluster_df.index, "std_sent_min"] = colorize_sentiment_v2(avg_sent - std_sent)
         combined_df.loc[cluster_df.index, "avg_sentiment"] = avg_sent
 
-    # [GARANTIA] Devolver as colunas calculadas aos dataframes originais para o resto do código não falhar
+    # Devolver as colunas calculadas aos dataframes originais para o resto do código não falhar
     df_final = combined_df[combined_df['Tipo'].astype(str).str.lower() != 'ação'].copy()
     df_acoes = combined_df[combined_df['Tipo'].astype(str).str.lower() == 'ação'].copy()
 
@@ -2971,8 +2979,8 @@ def traverse(dataframe, threshold, InputGraph, df_final, SOD_NAME, EOD_NAME):
                 # -------------------------------------------------------
 
                 # Usa 'val' (número limpo) nas comparações
-                if (val > threshold) or (i == SOD_NAME and val > 0) or (target_node == EOD_NAME and val > 0):
-                    
+                #if (val > threshold) or (i == SOD_NAME and val > 0) or (target_node == EOD_NAME and val > 0):
+                if val >= threshold:    
                     sentiment = None
                     std_max = None
                     std_min = None
@@ -3500,13 +3508,13 @@ def generate_markov_chain_separately_no(filename, n_clusters_speaker, matrix: pd
     G = nx.MultiDiGraph()
     matrix = pd.DataFrame(matrix)
     
-    # 1. Ordenação
+    # Ordenação
     df_final = df_final.sort_values(by=['dialogue_id', 'turn_id'])
     
-    # 2. Gerar Grafo
+    # Gerar Grafo
     visited, n_nodes = traverse(matrix, threshold, G, df_final, SOD_NAME, EOD_NAME)
     
-    # 3. Limpeza
+    # Limpeza
     to_remove = []
     for i in list(G.nodes):
         if i not in visited:
@@ -3624,18 +3632,17 @@ def generate_markov_chain_separately_no(filename, n_clusters_speaker, matrix: pd
         ud_mean, ud_std = cf.mean(), cf.std(ddof=1) if D > 1 else 0
         ad_mean, ad_std = ca.mean(), ca.std(ddof=1) if D > 1 else 0
 
-        # --- NOVAS MÉTRICAS DE COMPORTAMENTO ---
-        # 1. Calcular Taxa de Repetição (Self-Loops)
+        # Calcular Taxa de Repetição
         num_self_loops = sum(1 for u, v in G.edges() if u == v)
         taxa_self_loops = (num_self_loops / E) * 100 if E > 0 else 0.0
 
-        # 2. Encontrar o Nó Central (Ignorando SOD e EOD)
+        # Encontrar o Nó Central (Ignorando SOD e EOD)
         nos_poesia = [n for n in G.nodes() if n not in [SOD_NAME, EOD_NAME]]
         no_principal = "N/A"
         if nos_poesia:
             # Encontra o nó com mais trânsito (maior grau de entrada + saída)
             no_pesado = max(nos_poesia, key=lambda n: G.degree(n))
-            # Limpa o texto para ficar só a categoria (ex: tira o "José Pinhal -> ")
+            # Limpa o texto para ficar só a categoria
             no_principal = str(no_pesado).split(" -> ")[-1] if " -> " in str(no_pesado) else str(no_pesado)
         # ---------------------------------------
 
@@ -3811,11 +3818,11 @@ def apply_tsne(vectors, perplexity=30, n_iter=1000):
 nomeFichtsne_speaker={}
 tsne_result_speaker={}
 
-# 1. Definir nomes dos ficheiros
+# Definir nomes dos ficheiros
 for speaker in speakers:
     nomeFichtsne_speaker[speaker] = f'{MODEL_ML}_{algorithm}_{filename.split(".")[0]}_{metric_to_optimize}_{str(id_max)}_tsne_{speaker}.pkl'
 
-# 2. Verificar se já existem ou se é preciso calcular
+# Verificar se já existem ou se é preciso calcular
 caminho_dir = os.path.join('./Resultados', diretoria)
 os.makedirs(caminho_dir, exist_ok=True) # Garante que a pasta existe
 
@@ -3840,7 +3847,7 @@ else:
             with open(caminho_ficheiro, 'rb') as file:
                 tsne_result_speaker[speaker] = pickle.load(file)
 
-# 3. Desenhar e Guardar Gráficos
+# Desenhar e Guardar Gráficos
 print("A gerar gráficos PNG...")
 for speaker in speakers:
     if speaker not in tsne_result_speaker:
@@ -3886,16 +3893,16 @@ def apply_pca(vectors, n_components=2):
         
     return pca_result
 
-print("\n>>> A calcular PCA...")
+print("\n A calcular PCA...")
 
 nomeFichpca_speaker={}
 pca_result_speaker={}
 
-# 1. Definir nomes dos ficheiros
+# Definir nomes dos ficheiros
 for speaker in speakers:
     nomeFichpca_speaker[speaker] = f'{MODEL_ML}_{algorithm}_{filename.split(".")[0]}_{metric_to_optimize}_{str(id_max)}_pca_{speaker}.pkl'
 
-# 2. Verificar e Calcular
+# Verificar e Calcular
 caminho_dir = os.path.join('./Resultados', diretoria)
 files_exist_pca = all(os.path.exists(os.path.join(caminho_dir, file)) for file in nomeFichpca_speaker.values())
 
@@ -3920,7 +3927,7 @@ else:
             with open(caminho, 'rb') as file:
                 pca_result_speaker[speaker] = pickle.load(file)
 
-# 3. Desenhar Gráficos
+# Desenhar Gráficos
 print("A gerar gráficos PNG (PCA)...")
 for speaker in speakers:
     if speaker not in pca_result_speaker:
@@ -3944,15 +3951,15 @@ for speaker in speakers:
 
 
 # CARREGAMENTO E PREPARAÇÃO DOS DADOS DE TESTE
-print("\n>>> A CARREGAR DADOS DE TESTE...")
+print("\n A CARREGAR DADOS DE TESTE...")
 
-#if filename_test.endswith(".csv"):
-#    dados_test = pd.read_csv(filename_test, sep=',')
-#else:
-#    dados_test = pd.read_excel(filename_test)
+if filename_test.endswith(".csv"):
+    dados_test = pd.read_csv(filename_test, sep=',')
+else:
+    dados_test = pd.read_excel(filename_test)
 
-print("\n>>> A CARREGAR DADOS DE TESTE (CÓPIA DIRETA DO TREINO)...")
-dados_test = dados.copy()
+#print("\n A CARREGAR DADOS DE TESTE (CÓPIA DIRETA DO TREINO)...")
+#dados_test = dados.copy()
 
 
 # Garantir colunas essenciais
@@ -3984,9 +3991,7 @@ if 'Algo_speaker' not in locals(): Algo_speaker = {}
 if 'labels_speaker' not in locals(): labels_speaker = {}
 
 #  CARREGAR MODELOS (APENAS SE NÃO FOR KEYWORDS)
-if algorithm != "keywords":
-    print(">>> [IA] A carregar modelos de Clustering e Linguagem...")
-    
+if algorithm != "keywords":    
     # Carregar SentenceTransformer
     if 'model' not in locals():
         print("   A carregar SentenceTransformer...")
@@ -4081,14 +4086,14 @@ for speaker in speakers:
 
 print("A gerar df_final_test...")
 
-# 1. Juntar todos os DataFrames parciais (Presidente, PS, etc.)
+# Juntar todos os DataFrames parciais (Presidente, PS, etc.)
 dfs_validos = [df_test_speaker[s] for s in speakers if s in df_test_speaker and not df_test_speaker[s].empty]
 
 if dfs_validos:
     # Cria o DataFrame unificado
     df_final_test = pd.concat(dfs_validos, ignore_index=True)
     
-    # 2. Identificar colunas de clusters (ex: clusters_Presidente)
+    # Identificar colunas de clusters (ex: clusters_Presidente)
     cols_existentes = [c for c in df_final_test.columns if c.startswith("clusters_")]
     
     if cols_existentes:
@@ -4103,7 +4108,7 @@ else:
     print("Nenhum dado foi processado no teste. A criar DF vazio.")
     df_final_test = pd.DataFrame(columns=['Speaker', 'clusters_final', 'dialogue_id', 'turn_id', 'utterance'])
 
-# Ordenação Cronológica (Importante para o grafo não ficar baralhado)
+# Ordenação cronológica
 if not df_final_test.empty:
     df_final_test = df_final_test.sort_values(by=['dialogue_id', 'turn_id']).reset_index(drop=True)
 
@@ -4126,15 +4131,15 @@ if 'clusters_speaker' in globals():
             for c_id, lista_frases in clusters.items():
                 total_falas_nos_clusters += len(lista_frases)
 
-print(f"1. Total de linhas no Excel de Treino (df_final): {total_falas_no_df}")
-print(f"2. Total de frases armazenadas nos Clusters: {total_falas_nos_clusters}")
+print(f"Total de linhas no Excel de Treino (df_final): {total_falas_no_df}")
+print(f"Total de frases armazenadas nos Clusters: {total_falas_nos_clusters}")
 
 if abs(total_falas_no_df - total_falas_nos_clusters) < 50:
     print("O grafo contém os dados de treino!")
 else:
     print("Há uma discrepância grande. Verifica se as 'Ações' estão a ser contadas.")
 
-# 1. DEFINIÇÃO DAS FUNÇÕES DE CÁLCULO (FF1)
+# DEFINIÇÃO DAS FUNÇÕES DE CÁLCULO (FF1)
 import Levenshtein
 import networkx as nx
 
@@ -4198,7 +4203,7 @@ def flow_f1(result, test_paths, df_referencia, diretoria):
     else:
         ff1 = (2 * (1 - nc) * (1 - nf)) / denominador
         
-    print(f"📊 Métricas Intermédias: NC={nc:.2f}, NF={nf:.2f}")
+    print(f"Métricas Intermédias: NC={nc:.2f}, NF={nf:.2f}")
     return ff1
 
 def converter_dialogos_para_caminhos(dados, y_predicted_speaker, labels_speaker, speakers):
@@ -4237,11 +4242,11 @@ def converter_dialogos_para_caminhos(dados, y_predicted_speaker, labels_speaker,
         
     return test_paths
 
-print("\n>>> A CALCULAR FLOW F1 SCORE...")
+print("\nA CALCULAR FLOW F1 SCORE...")
 
 ff1 = 0.0
 
-# 1. Recuperar nomes dos ficheiros
+# Recuperar nomes dos ficheiros
 f_train = globals().get('filename', '')
 f_test = globals().get('filename_test', '')
 
@@ -4284,14 +4289,14 @@ def save_graph_and_variables(graph, variable_name, diretoria):
     dot_filename = os.path.join(base_path, f"{variable_name}_graph.dot")
     pkl_filename = os.path.join(base_path, f"{variable_name}_vars.pkl")
 
-    # 1. Mapeamento de Labels
+    # Mapeamento de Labels
     label_to_cluster_speaker = {}
     if 'labels_speaker' in globals():
         for speaker in speakers:
             if speaker in labels_speaker:
                 label_to_cluster_speaker[speaker] = {str(v).lower().strip(): k for k, v in labels_speaker[speaker].items()}
 
-    # 2. Criar dicionário de IDs
+    # Criar dicionário de IDs
     cluster_id_speaker = {}
     for node in graph.nodes():
         # Lógica simples para extrair nome
@@ -4327,7 +4332,7 @@ def save_graph_and_variables(graph, variable_name, diretoria):
     with open(pkl_filename, "wb") as f:
         pickle.dump(variables, f)
 
-    # 4. Guardar DOT
+    # Guardar DOT
     nx_pydot.write_dot(graph, dot_filename)
     
     # Injetar referência no DOT para o JS saber qual ficheiro ler
@@ -4346,7 +4351,7 @@ if 'avg_SOD' not in locals(): avg_SOD = 0.5
 if 'avg_EOD' not in locals(): avg_EOD = 0.5
 
 try:
-    print(f">>> A exportar para: {diretoria}")
+    print(f" A exportar para: {diretoria}")
     save_graph_and_variables(result, "DAs_train_emo_none_NONE_1", diretoria)
     print("\n Abre a interface!.")
 except Exception as e:
@@ -4360,7 +4365,7 @@ if 'speaker_cluster_counts' not in locals(): speaker_cluster_counts = {}
 if 'clusters_speaker' not in locals(): clusters_speaker = {}
 
 try:
-    print(f">>> A exportar para: {diretoria}")
+    print(f" A exportar para: {diretoria}")
     save_graph_and_variables(result, "DAs_train_emo_none_NONE_1", diretoria)
     print("\n O ficheiro da interface foi gerado.")
 except Exception as e:
@@ -4398,7 +4403,7 @@ for i, t in enumerate(threshold):
     v_measure_train = 0
     accuracy = 0
 
-    # 3. CARREGAR O GRAFO E GERAR IMAGEM
+    # CARREGAR O GRAFO E GERAR IMAGEM
     flow = None
     
     if dot_filename and os.path.exists(dot_filename):
@@ -4571,7 +4576,6 @@ def verificar_caminhos_sod_eod(df_final_test, names_speaker):
 
     return caminhos_sod_eod
 
-# Carregar os dados
 if filename[-4:] == ".csv":
     dados_teste = pd.read_csv(filename_test, sep=',')
     dados_treino = pd.read_csv(filename, sep=',')
@@ -4631,14 +4635,14 @@ def flow_f1(result, test_paths, df_referencia, diretoria):
 def converter_dialogos_para_caminhos(dados, y_predicted_speaker, labels_speaker, speakers):
     test_paths = []
     
-    # 1. Agrupar por diálogo
+    # Agrupar por diálogo
     for dialogue_id in dados['dialogue_id'].unique():
         caminho_atual = ["SOD"]
         
         # Filtra apenas as linhas deste diálogo
         df_dialogo = dados[dados['dialogue_id'] == dialogue_id].sort_values(by='turn_id')
         
-        # 2. Contador local para cada speaker neste diálogo
+        # Contador local para cada speaker neste diálogo
         for _, row in df_dialogo.iterrows():
             speaker = row['Speaker']
             
@@ -4694,13 +4698,13 @@ def save_graph_and_variables(graph, variable_name, diretoria):
     dot_filename = os.path.join(base_path, f"{variable_name}_graph.dot")
     pkl_filename = os.path.join(base_path, f"{variable_name}_vars.pkl")
 
-    # 1. Mapeamento de Labels para IDs
+    # Mapeamento de Labels para IDs
     label_to_cluster_speaker = {}
     for speaker in speakers:
         if speaker in labels_speaker:
             label_to_cluster_speaker[speaker] = {normalizar_texto(v): k for k, v in labels_speaker[speaker].items()}
 
-    # 2. Criar dicionário de IDs de cluster por nó
+    # Criar dicionário de IDs de cluster por nó
     cluster_id_speaker = {}
     for node in graph.nodes():
         label_puro = extrair_label_puro(node)
@@ -4762,9 +4766,9 @@ if 'avg_SOD' not in locals(): avg_SOD = 0.5
 if 'avg_EOD' not in locals(): avg_EOD = 0.5
 if 'density' not in locals(): density = 0.0
 
-print(">>> A gerar o grafo final...")
+print(" A gerar o grafo final...")
 try:
-    print(">>> A exportar dados para a Interface...")
+    print("A exportar dados para a Interface...")
     save_graph_and_variables(result, "DAs_train_emo_none_NONE_1", diretoria)
     print("Sucesso! Ficheiros gerados em: ./Resultados/" + diretoria)
 except Exception as e:
@@ -4786,6 +4790,390 @@ def sanitize(obj):
     else:
         return obj
 
+
+# --- Peso do Turno ---
+PENALIZACAO_TURNO = 0.0 
+
+# Mapear a coluna 'sentimento' para números se a 'Median_Binary' não existir
+mapa_sentimento = {
+    'Positivo': 1.0, 'positivo': 1.0,
+    'Neutro': 0.0, 'neutro': 0.0,
+    'Negativo': -1.0, 'negativo': -1.0
+}
+
+if 'Median_Binary' not in df_final.columns and 'sentimento' in df_final.columns:
+    print("A traduzir a coluna 'sentimento' (texto) para 'Median_Binary' (números)...")
+    df_final['Median_Binary'] = df_final['sentimento'].map(mapa_sentimento).fillna(0.0)
+
+recompensas_dialogo = {}
+
+for diag_id, group in df_final.groupby('dialogue_id'):
+    if 'Median_Binary' in group.columns:
+        # Calculamos a média do sentimento de toda a conversa
+        media_sentimento = group['Median_Binary'].mean()
+        val_sent = media_sentimento 
+    else:
+        val_sent = 0.0
+    
+    num_turnos = len(group)
+    
+    # A penalização agora é 0, logo r_total = sentimento puro
+    r_total = val_sent - (num_turnos * PENALIZACAO_TURNO)
+    
+    recompensas_dialogo[diag_id] = r_total
+
+df_transitions = df_final.copy().sort_values(by=['dialogue_id', 'turn_id'])
+
+# Transições normais e EOD
+df_transitions['estado_atual'] = df_transitions['n_clusters_final'].astype(str)
+df_transitions['estado_seguinte'] = df_transitions.groupby('dialogue_id')['n_clusters_final'].shift(-1).fillna('EOD').astype(str)
+df_transitions = df_transitions[df_transitions['estado_atual'] != 'EOD']
+df_transitions['recompensa_associada'] = df_transitions['dialogue_id'].map(recompensas_dialogo)
+
+# Descobrir a primeira fala de cada diálogo
+primeiras_falas = df_final.sort_values(by=['dialogue_id', 'turn_id']).groupby('dialogue_id').first().reset_index()
+
+# Criar um DataFrame só com as transições SOD -> 1ª Fala
+df_sod = pd.DataFrame({
+    'estado_atual': 'SOD',
+    'estado_seguinte': primeiras_falas['n_clusters_final'].astype(str),
+    'dialogue_id': primeiras_falas['dialogue_id'],
+    'recompensa_associada': primeiras_falas['dialogue_id'].map(recompensas_dialogo)
+})
+
+# Juntar as transições SOD com as transições normais
+df_transitions = pd.concat([df_sod, df_transitions], ignore_index=True)
+
+# Agrupar e calcular probabilidades
+matriz_mdp = df_transitions.groupby(['estado_atual', 'estado_seguinte']).agg(
+    frequencia=('dialogue_id', 'count'),
+    recompensa_media=('recompensa_associada', 'mean')
+).reset_index()
+
+matriz_mdp['probabilidade_transicao'] = matriz_mdp['frequencia'] / matriz_mdp.groupby('estado_atual')['frequencia'].transform('sum')
+
+
+# Recalcular o offset de cada orador
+offsets = {}
+acumulado = 0
+for speaker in speakers:
+    offsets[speaker] = acumulado
+    acumulado += n_clusters_speaker.get(speaker, 0)
+
+# Construir o dataframe de labels já com os IDs Globais
+lista_labels = []
+for speaker, dict_labels in labels_speaker.items():
+    prefixo = 's' if speaker == 'SYSTEM' else 'u'
+    offset_atual = offsets.get(speaker, 0)
+    
+    for cluster_id, label in dict_labels.items():
+        # Somar o offset ao ID do dicionário!
+        global_id = int(cluster_id) + offset_atual
+        lista_labels.append({
+            'code': f"{prefixo}{global_id}",
+            'label_formatada': f"[{speaker}] {label}"
+        })
+
+df_mapa = pd.DataFrame(lista_labels)
+
+# Fazer o Merge (agora o u10 já vai existir na tabela df_mapa!)
+matriz_mdp = matriz_mdp.merge(df_mapa, left_on='estado_atual', right_on='code', how='left')
+matriz_mdp['estado_atual'] = matriz_mdp['label_formatada'].fillna(matriz_mdp['estado_atual'])
+matriz_mdp = matriz_mdp.drop(columns=['code', 'label_formatada'], errors='ignore')
+
+matriz_mdp = matriz_mdp.merge(df_mapa, left_on='estado_seguinte', right_on='code', how='left')
+matriz_mdp['estado_seguinte'] = matriz_mdp['label_formatada'].fillna(matriz_mdp['estado_seguinte'])
+matriz_mdp = matriz_mdp.drop(columns=['code', 'label_formatada'], errors='ignore')
+
+# Arredondamentos e exportação
+matriz_mdp['recompensa_media'] = matriz_mdp['recompensa_media'].round(2)
+matriz_mdp['probabilidade_transicao'] = matriz_mdp['probabilidade_transicao'].round(2)
+
+# Extrair o nome base do dataset
+nome_dataset = str(filename).split('.')[0]
+
+# Obter a hora atual
+hora_atual = datetime.now().strftime("%Hh%Mm%Ss")
+
+# Construir o novo nome base
+nome_ficheiro_dinamico = f"Matriz_Transicoes_{nome_dataset}_{hora_atual}"
+
+# Guardar em CSV
+caminho_csv = os.path.join('./Resultados', diretoria, f'{nome_ficheiro_dinamico}.csv')
+matriz_mdp.to_csv(caminho_csv, index=False, encoding='utf-8-sig')
+
+# Guardar em Excel (Opcional, mas dá muito jeito para a tese)
+caminho_excel = os.path.join('./Resultados', diretoria, f'{nome_ficheiro_dinamico}.xlsx')
+matriz_mdp.to_excel(caminho_excel, index=False)
+
+print(f" Matrizes exportadas com sucesso para:\n -> {caminho_csv}\n -> {caminho_excel}")
+
+# --- ANÁLISE DOS RESULTADOS ---
+
+# Identificar os 5 estados com melhor e pior recompensa
+df_analise = matriz_mdp[matriz_mdp['frequencia'] >= 5].copy()
+
+top_recompensa = df_analise.groupby('estado_atual')['recompensa_media'].mean().sort_values(ascending=False).head(5)
+bottom_recompensa = df_analise.groupby('estado_atual')['recompensa_media'].mean().sort_values(ascending=True).head(5)
+
+print("\n TOP 5 ESTADOS DE GRANDE SATISFAÇÃO:")
+print(top_recompensa)
+
+print("\n TOP 5 ESTADOS DE BAIXA SATISFAÇÃO:")
+print(bottom_recompensa)
+
+# Identificar estados com alta probabilidade de transição
+pivot_states = df_analise.groupby('estado_atual')['probabilidade_transicao'].count().sort_values(ascending=False).head(5)
+
+print("\n ESTADOS PIVOT -> Onde o bot tem maior divrsidade de decisão")
+print(pivot_states)
+
+# Cruzar Frequência com Recompensa
+df_analise['impacto_negativo'] = df_analise['frequencia'] * (df_analise['recompensa_media'] < 0)
+gargalos_prioritarios = df_analise.sort_values(by='impacto_negativo', ascending=False).head(5)
+
+print("\n Alta Frequência + Frustração")
+print(gargalos_prioritarios[['estado_atual', 'estado_seguinte', 'frequencia', 'recompensa_media']])
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+
+df_plot = matriz_mdp[matriz_mdp['frequencia'] > 2].copy()
+
+# Onde o Bot Falha Mais?
+# Ordenei pela recompensa_media
+plt.figure(figsize=(10, 8))
+top_gargalos = df_plot.sort_values('recompensa_media', ascending=True).head(10)
+
+sns.barplot(data=top_gargalos, x='recompensa_media', y='estado_atual', palette='Reds_r')
+plt.title('Top 10 Estados de Baixa Satisfação')
+plt.xlabel('Recompensa Média')
+plt.ylabel('Estado de Origem')
+plt.tight_layout()
+
+plt.savefig(os.path.join('./Resultados', diretoria, 'Gargalos_Satisfacao.png'), dpi=300)
+plt.close()
+
+# Heatmap
+plt.figure(figsize=(12, 6))
+heatmap_data = df_plot.pivot_table(index='estado_atual', values=['frequencia', 'recompensa_media'], aggfunc='mean')
+
+sns.heatmap(heatmap_data, annot=True, cmap='RdYlGn', fmt='.1f')
+plt.title('Densidade: Frequência vs Recompensa')
+plt.tight_layout()
+
+plt.savefig(os.path.join('./Resultados', diretoria, 'Heatmap_Densidade.png'), dpi=300)
+plt.close()
+
+print(f"Gráficos guardados na pasta: ./Resultados/{diretoria}/")
+
+trajetorias_gflownet = []
+
+# Agrupar o dataframe principal por diálogo
+for diag_id, group in df_final.groupby('dialogue_id'):
+    
+    # Extrair a sequência de estados pela ordem em que aconteceram
+    sequencia_estados = group['n_clusters_final'].astype(str).tolist()
+    
+    # Construir o caminho completo
+    caminho_completo = ['SOD'] + sequencia_estados + ['EOD']
+    
+    # Ir buscar a recompensa final que calculámos para este diálogo
+    recompensa_final = recompensas_dialogo.get(diag_id, 0.0)
+    
+    # Guardar os dados na nossa lista
+    trajetorias_gflownet.append({
+        'dialogue_id': diag_id,
+        'caminho': caminho_completo,
+        'tamanho_caminho': len(caminho_completo),
+        'recompensa': recompensa_final
+    })
+
+# Converter a lista num DataFrame para ser mais fácil de analisar e exportar
+df_trajetorias = pd.DataFrame(trajetorias_gflownet)
+
+caminho_json = os.path.join('./Resultados', diretoria, 'trajetorias_gflownet.json')
+df_trajetorias.to_json(caminho_json, orient='records', force_ascii=False, indent=4)
+
+print(f"\nForam extraídas {len(df_trajetorias)} trajetórias de diálogos completos!")
+
+num_exemplos = min(2, len(df_trajetorias)) 
+print(f"--- Exemplo das {num_exemplos} primeiras trajetórias ---")
+
+for i in range(num_exemplos):
+    print(f"\nDiálogo ID: {df_trajetorias.iloc[i]['dialogue_id']}")
+    print(f"Recompensa: {df_trajetorias.iloc[i]['recompensa']:.4f}")
+    print(f"Caminho: {' -> '.join(df_trajetorias.iloc[i]['caminho'])}")
+
+# Carrega as trajetórias que guardei
+caminho_json = os.path.join('./Resultados', diretoria, 'trajetorias_gflownet.json')
+with open(caminho_json, 'r', encoding='utf-8') as f:
+    trajetorias = json.load(f)
+
+# Mapear Estados para Números
+todos_os_estados = set()
+for traj in trajetorias:
+    for estado in traj['caminho']:
+        todos_os_estados.add(estado)
+
+# Adicionar um estado especial para preenchimento (caso necessário)
+todos_os_estados = sorted(list(todos_os_estados))
+estado_para_id = {estado: i for i, estado in enumerate(todos_os_estados)}
+id_para_estado = {i: estado for estado, i in estado_para_id.items()}
+
+NUM_ESTADOS = len(todos_os_estados)
+
+print(f"Vocabulário criado! Temos {NUM_ESTADOS} estados únicos.")
+print("Mapeamento de Exemplo:", {k: estado_para_id[k] for k in list(estado_para_id.keys())[:5]})
+
+# Traduzir as trajetórias para Números (Tensores do PyTorch)
+trajetorias_numericas = []
+for traj in trajetorias:
+    caminho_ids = [estado_para_id[estado] for estado in traj['caminho']]
+    trajetorias_numericas.append({
+        'dialogue_id': traj['dialogue_id'],
+        'caminho_ids': caminho_ids,
+        'recompensa': traj['recompensa']
+    })
+
+print(f"\nExemplo da Trajetória 0 convertida para números: {trajetorias_numericas[0]['caminho_ids']}")
+
+import torch.nn as nn
+import torch.optim as optim
+import os
+
+# TREINO DA GFLOWNET
+# Definir a Rede Neuronal
+class FlowDiscoNet(nn.Module):
+    # Adicionei 'tamanho_janela=3' para ler o turno atual + 2 anteriores
+    def __init__(self, num_estados, tamanho_janela=3):
+        super().__init__()
+        self.num_estados = num_estados
+        self.tamanho_janela = tamanho_janela
+        
+        self.logZ = nn.Parameter(torch.tensor([0.0])) 
+        
+        # A camada nn.Linear agora aceita (num_estados * 3) em vez de apenas num_estados
+        input_size = num_estados * tamanho_janela
+        self.rede = nn.Sequential(
+            nn.Linear(input_size, 128),  # Aumentei para 128 neurónios porque o input agora é maior
+            nn.ReLU(),
+            nn.Dropout(0.1), # Adicinei este pequeno dropout para não decorar as conversas
+            nn.Linear(128, num_estados),
+            nn.LogSoftmax(dim=-1)
+        )
+
+    def forward(self, janela_ids):
+        # Cria um vetor gigante que tem espaço para os 3 estados
+        estado_one_hot = torch.zeros(self.tamanho_janela * self.num_estados)
+        
+        # Preenche o vetor com a sequência (tipo Cadeia de Markov)
+        for i, estado_id in enumerate(janela_ids):
+            estado_id = int(estado_id) if estado_id is not None else -1
+            if estado_id != -1: 
+                estado_one_hot[(i * self.num_estados) + estado_id] = 1.0
+                
+        return self.rede(estado_one_hot)
+
+# Trajectory Balance Loss
+def calcular_loss_tb(modelo, caminho_ids, recompensa_final):
+    recompensa_positiva = max(recompensa_final + 2.0, 1e-4) 
+    
+    soma_log_Pf = 0.0
+    
+    # Inicializei a "memória" da conversa com -1 (sem histórico) e o 1º estado
+    janela_atual = [-1, -1, caminho_ids[0]] 
+    
+    for i in range(len(caminho_ids) - 1):
+        estado_seguinte = caminho_ids[i+1]
+        
+        # Mando os 3 estados para a rede adivinhar o próximo
+        log_probs = modelo(janela_atual) 
+        soma_log_Pf += log_probs[estado_seguinte]
+        
+        # o passado mais antigo desaparece
+        janela_atual = [janela_atual[1], janela_atual[2], estado_seguinte]
+        
+    soma_log_Pb = 0.0 
+    log_R = torch.log(torch.tensor(recompensa_positiva))
+    
+    loss = (modelo.logZ + soma_log_Pf - soma_log_Pb - log_R) ** 2
+    return loss
+
+# Preparar o Treino
+modelo = FlowDiscoNet(NUM_ESTADOS)
+optimizer = optim.Adam(modelo.parameters(), lr=0.01) # Otimizador 
+
+epocas = 0 # Quantas vezes a rede vai ler as conversas
+print("\nA INICIAR O TREINO DA GFLOWNET...")
+
+for epoca in range(epocas):
+    loss_total_epoca = 0.0
+    
+    for traj in trajetorias_numericas:
+        optimizer.zero_grad() # Limpar a memória do erro passado
+        
+        # Calcular o erro desta trajetória
+        loss = calcular_loss_tb(modelo, traj['caminho_ids'], traj['recompensa'])
+        
+        # Aprender com o erro -> Backpropagation
+        loss.backward()
+        optimizer.step()
+        
+        loss_total_epoca += loss.item()
+        
+    if (epoca + 1) % 50 == 0 or epoca == 0:
+        media_loss = loss_total_epoca / len(trajetorias_numericas)
+        print(f"Época {epoca + 1}/{epocas} | Loss Média: {media_loss:.4f}")
+
+# 5. Guardar o modelo otimizado
+caminho_modelo = os.path.join('./Resultados', diretoria, 'oraculo_gflownet.pth')
+torch.save(modelo.state_dict(), caminho_modelo)
+print(f"\nGFlowNET treinada e guardada em: {caminho_modelo}")
+
+import torch
+
+modelo.eval()
+
+def perguntar_ao_oraculo(estado_texto):
+    print(f"\n O que fazer a partir de '{estado_texto}'?")
+    
+    # Transformar texto em número
+    id_estado = estado_para_id.get(estado_texto)
+    if id_estado is None:
+        print("Erro: Esse estado não existe no vocabulário.")
+        return
+        
+    with torch.no_grad():
+        # Pedir à rede as log-probabilidades
+        log_probs = modelo(id_estado)
+        
+        # Converter log-probabilidades para Percentagens reais
+        probabilidades = torch.exp(log_probs) * 100
+        
+    # extraio os 3 caminhos com maior probabilidade
+    top_probs, top_ids = torch.topk(probabilidades, 3)
+    
+    print("Recomendações:")
+    for i in range(3):
+        id_sugerido = top_ids[i].item()
+        estado_sugerido = id_para_estado[id_sugerido]
+        percentagem = top_probs[i].item()
+        print(f"   {i+1}º -> Redirecionar para: [{estado_sugerido}] (Confiança: {percentagem:.1f}%)")
+
+# TESTES
+#perguntar_ao_oraculo('SOD')
+#perguntar_ao_oraculo('s0')
+#perguntar_ao_oraculo('s2')
+
+for speaker, dict_labels in labels_speaker.items():
+    prefixo = 's' if speaker == 'SYSTEM' else 'u'
+    offset_atual = offsets.get(speaker, 0)
+    
+    for cluster_id, label in dict_labels.items():
+        global_id = int(cluster_id) + offset_atual
+        print(f"{prefixo}{global_id}  -->  [{speaker}] {label}")
 import glob
 
 app = Flask(__name__)
@@ -4801,7 +5189,6 @@ def upload_dot():
     dot_path = os.path.join('uploads', filename)
     file.save(dot_path)
 
-    # 1. Extrair o nome do ficheiro .pkl (porque está num comentário // variables_file=...)
     pkl_filename = None
     with open(dot_path, 'r', encoding='utf-8') as f:
         for line in f:
@@ -4812,7 +5199,7 @@ def upload_dot():
     if not pkl_filename:
         return jsonify({"error": "A referência variables_file não foi encontrada no .dot"}), 400
 
-    # 2. Procurar o ficheiro .pkl dentro da pasta Resultados
+    # Procurar o ficheiro .pkl dentro da pasta Resultados
     import glob
     found_pkls = glob.glob(f'./Resultados/*/{pkl_filename}')
     
@@ -4822,7 +5209,7 @@ def upload_dot():
         
     pkl_path = found_pkls[0]
 
-    # 3. Carregar os dados originais
+    # Carregar os dados originais
     with open(pkl_path, 'rb') as f:
         vars_loaded = pickle.load(f)
 
@@ -4840,7 +5227,6 @@ def upload_dot():
     for spk in vars_loaded.get('speakers', []):
         colors_map[spk] = atribuir_cor(spk)
 
-    # 4. Devolver TUDO atualizado ao JavaScript
     return jsonify({
         'dot_code': dot_code,
         'speakers': vars_loaded.get('speakers', []), 
@@ -4878,22 +5264,21 @@ def load_data_from_dot(dot_filepath: str):
     global clusters_speaker, diretoria, cluster_id_speaker
     global dot_code, result
 
-    # 1. Ler o grafo do ficheiro .dot
+    # Ler o grafo do ficheiro .dot
     result = nx_pydot.read_dot(dot_filepath)
     pkl_filename = extract_variables_file_from_dot(dot_filepath)
     
     if pkl_filename is None:
         raise ValueError("O ficheiro .dot não contém a referência ao ficheiro .pkl.")
 
-    # 3. Construir caminho completo do .pkl com base na mesma pasta do .dot
+    # Construir caminho completo do .pkl com base na mesma pasta do .dot
     dot_dir = os.path.dirname(dot_filepath)
     pkl_filepath = os.path.join(dot_dir, pkl_filename)
 
-    # 4. Carregar variáveis do .pkl
+    # Carregar variáveis do .pkl
     with open(pkl_filepath, "rb") as f:
         vars_loaded = pickle.load(f)
 
-    # 5. Extrair variáveis
     speakers = vars_loaded["speakers"]
     speaker_cluster_counts = vars_loaded["speaker_cluster_counts"]
     fsc_speaker = vars_loaded["fsc_speaker"]
@@ -4905,7 +5290,7 @@ def load_data_from_dot(dot_filepath: str):
     diretoria = vars_loaded["diretoria"]
     cluster_id_speaker = vars_loaded["cluster_id_speaker"]
 
-    # 6. Ler código do ficheiro .dot como string
+    # Ler código do ficheiro .dot como string
     with open(dot_filepath, encoding='utf-8', errors='ignore') as f:
         dot_code = f.read()
 
@@ -4945,7 +5330,7 @@ def atribuir_cor(speaker):
     if s_upper in ["SOD", "EOD"]:
         return "#FFD700"
 
-    # --- 2. CORES POLÍTICAS ---
+    # --- CORES POLÍTICAS ---
     # Só são usadas se o nome do speaker contiver a sigla do partido
     PARTY_COLORS = {
         "BE": "#B22222", "PCP": "#FF0000", "PEV": "#008000", 
@@ -4959,7 +5344,7 @@ def atribuir_cor(speaker):
         if key in s_upper:
             return color
 
-    # --- 3. CORES "FRIENDS" ---
+    # --- CORES "FRIENDS" ---
     FRIENDS_COLORS = {
         "RACHEL": "#FF6B6B", "JOEY": "#FF9966", "MONICA": "#66CDAA",
         "ROSS": "#6A5ACD", "CHANDLER": "#B266FF", "PHOEBE": "#FF69B4"
@@ -4971,7 +5356,7 @@ def atribuir_cor(speaker):
     if speaker in cores_personalizadas:
         return cores_personalizadas[speaker]
 
-    # Gera uma cor nova baseada no NOME. 
+    # Gera uma cor nova baseada no NOME
     random.seed(speaker) 
     cor_aleatoria = "#" + "".join([random.choice("0123456789ABCDEF") for j in range(6)])
     
@@ -4993,7 +5378,7 @@ result = None
 
 import glob
 
-# 1. Procura todas as pastas dentro de ./Resultados que começam pelo nome do ficheiro
+# Procura todas as pastas dentro de ./Resultados que começam pelo nome do ficheiro
 # ou simplesmente a pasta mais recente criada em Resultados
 pastas_resultados = glob.glob(os.path.join("./Resultados", "*"))
 if pastas_resultados:
@@ -5031,14 +5416,14 @@ for node, attrs in result.nodes(data=True):
 if n_action_nodes + n_dialogue_nodes != total_nodes:
     n_dialogue_nodes = total_nodes - n_action_nodes
 
-print("\n>>> A RECALCULAR MÉTRICAS PARA A BARRA LATERAL...")
+print("\nA RECALCULAR MÉTRICAS PARA A BARRA LATERAL")
 
 utterances_in_dataset = 0
 n_dialogues_in_dataset = 0
 utterances_per_dialogue_mean = 0
 utterances_per_dialogue_std = 0
 
-# 1. Obter os dados brutos
+# Obter os dados brutos
 raw_data = locals().get('df_final')
 
 if isinstance(raw_data, list):
@@ -6029,11 +6414,11 @@ html_content = f"""
             if (text) {{
                 let cleanName = text;
 
-                // 1. Se tiver seta "->", corta pela seta
+                // Se tiver seta "->", corta pela seta
                 if (text.includes("->")) {{
                     cleanName = text.split("->")[0];
                 }}
-                // 2. Se tiver traço COM ESPAÇOS (" - "), corta (ex: "PSD - Aplausos")
+                // Se tiver traço COM ESPAÇOS (" - "), corta (ex: "PSD - Aplausos")
                 // O "CDS-PP" não tem espaços, por isso fica inteiro!
                 else if (text.includes(" - ")) {{
                     cleanName = text.split(" - ")[0];
@@ -6805,7 +7190,7 @@ html_content = f"""
             const file = event.target.files[0];
             if (!file) return;
 
-            // 1. Atualiza nomes na UI
+            // Atualiza nomes na UI
             const lblText = document.getElementById("fileLabelText");
             if (lblText) lblText.textContent = file.name;
             
@@ -7323,7 +7708,6 @@ def gerar_fluxo_hierarquico(df_atual, diretoria_out, nome_ficheiro, titulo_grafo
         print(f"Erro ao gerar PNG. Ficheiro .dot guardado em: {caminho_final}.dot")
         dot.save(f"{caminho_final}.dot")
 
-# CHAMADA DA FUNÇÃO
 # try:
 #     traducao_dominios = {'Desporto': 'Sports', 'Música': 'Music', 'Cidades': 'Cities'}
 #     modelo_original = MODELOS[0] if 'MODELOS' in locals() and MODELOS else "Modelo"
@@ -7340,7 +7724,7 @@ def gerar_fluxo_hierarquico(df_atual, diretoria_out, nome_ficheiro, titulo_grafo
 #     print(f"Erro na chamada da função: {e}")
 # -----------------------------------
 
-# 1. FUNÇÕES AUXILIARES
+# FUNÇÕES AUXILIARES
 def validar_matematica_transicoes(df_atual, linha_origem=4, ato_origem='FIGURATION'):
     print(f"Teste para analisar a transição da Linha {linha_origem} ({ato_origem}) para a Linha {linha_origem + 1}\n")
     
@@ -7357,7 +7741,7 @@ def validar_matematica_transicoes(df_atual, linha_origem=4, ato_origem='FIGURATI
 
     coluna_ato = 'speech_act_gerado' if 'speech_act_gerado' in df_soneto.columns else 'trueLabel'
     
-    # 1. Encontrar todos os poemas que na Linha de Origem tiveram o Ato de Origem
+    # Encontrar todos os poemas que na Linha de Origem tiveram o Ato de Origem
     poemas_na_origem = df_soneto[
         (df_soneto['turn_id'] == linha_origem) & 
         (df_soneto[coluna_ato] == ato_origem)
@@ -7370,20 +7754,20 @@ def validar_matematica_transicoes(df_atual, linha_origem=4, ato_origem='FIGURATI
         print(f"Não há nenhum poema que tenha '{ato_origem}' na Linha {linha_origem}.")
         return
 
-    print(f"PASSO 1: O modelo gerou '{ato_origem}' na Linha {linha_origem} em exatamente {total_origem} poemas.")
+    print(f"O modelo gerou '{ato_origem}' na Linha {linha_origem} em {total_origem} poemas.")
     
-    # 2. Olhar apenas para a Linha Seguinte, MAS APENAS para os IDs que encontrámos no Passo 1
+    # Olhar apenas para a Linha Seguinte, mas apenas para os IDs que encontrámos no Passo 1
     linha_seguinte = linha_origem + 1
     poemas_no_destino = df_soneto[
         (df_soneto['turn_id'] == linha_seguinte) & 
         (df_soneto['dialogue_id'].isin(ids_poemas))
     ]
     
-    # 3. Contar para onde é que eles foram
+    # Contar para onde é que eles foram
     contagem_destinos = poemas_no_destino[coluna_ato].value_counts()
     
     for destino, quantidade in contagem_destinos.items():
-        # 4. Calcular a probabilidade
+        # Calcular a probabilidade
         probabilidade = quantidade / total_origem
         print(f"-> Foram para '{destino}': {quantidade} poemas")
         print(f"   {quantidade} / {total_origem} = {probabilidade:.2f} ({probabilidade*100:.0f}%)")
@@ -7430,8 +7814,425 @@ if os.path.exists(directory):
             except Exception as e:
                 print(f"Erro ao apagar {file}: {e}")
 
+llm_chat = Ollama(base_url="http://localhost:11434", model="llama3.2", temperature=0, num_predict=50)
 
-# 4. INÍCIO DO SERVIDOR FLASK
+from sklearn.metrics.pairwise import cosine_similarity
+import random
+
+def flowdisco_teste_ab_com_metricas():
+    
+    inv = {}
+    for speaker, dict_labels in labels_speaker.items():
+        prefixo = 's' if speaker == 'SYSTEM' else 'u'
+        offset_atual = offsets.get(speaker, 0)
+        for cluster_id, label in dict_labels.items():
+            global_id = int(cluster_id) + offset_atual
+            codigo = f"{prefixo}{global_id}"
+            nome_completo = f"[{speaker}] {label}"
+            inv[codigo] = nome_completo
+            
+    if df_final_test.empty:
+        print("Aviso: O dataset de teste está vazio!")
+        return
+        
+    resultados_tese = []
+    
+    import random
+
+    # Pego em todos os IDs de teste
+    todos_os_dialogos = df_final_test['dialogue_id'].unique()
+
+    # Defino uma amostra 
+    tamanho_amostra = min(200, len(todos_os_dialogos))
+
+    # Uso uma 'seed' fixa (42) para o Python escolher sempre 
+    # os mesmos diálogos se tiver de correr o código outra vez amanhã
+    random.seed(42) 
+    dialogos_alvo = random.sample(list(todos_os_dialogos), tamanho_amostra)
+
+    print(f"A iniciar processamento de {len(dialogos_alvo)} diálogos...")
+    
+    # Verificar se o modelo do SYSTEM está disponível para testar os clusters
+    modelo_kmeans_system = Algo_speaker.get('SYSTEM')
+    if modelo_kmeans_system is None:
+        print("Modelo KMeans do SYSTEM não encontrado. As colunas de avaliação não serão exatas.")
+    
+    offset_system = offsets.get('SYSTEM', 0)
+
+    def obter_exemplos_cluster(cluster_id, max_exemplos=3):
+        try:
+            frases_cluster = clusters_speaker.get('SYSTEM', {}).get(int(cluster_id), [])
+            if not frases_cluster: return ""
+            amostras = random.sample(frases_cluster, min(len(frases_cluster), max_exemplos))
+            exemplos_texto = "\n".join([f"- \"{frase}\"" for frase in amostras])
+            return f"\n\nAqui tens alguns exemplos do formato e tom esperados para esta ação:\n{exemplos_texto}"
+        except:
+            return ""
+
+    for diag_id in dialogos_alvo:
+        dialogo_teste = df_final_test[df_final_test['dialogue_id'] == diag_id].sort_values('turn_id').reset_index(drop=True)
+        
+        for index, row in dialogo_teste.iterrows():
+            if row['Speaker'] == 'USER':
+                msg_user = row['utterance']
+                
+                cluster_id_real = row['clusters_final']
+                offset_user = offsets.get('USER', 0)
+                codigo_estado_cliente = f"u{int(cluster_id_real) + offset_user}"
+                id_estado_modelo = estado_para_id.get(codigo_estado_cliente)
+                
+                estado_sugerido_codigo = "EOD" 
+                if id_estado_modelo is not None:
+                    janela = [-1, -1, id_estado_modelo]
+                    
+                    if index >= 2:
+                        id_t2 = estado_para_id.get(f"u{int(dialogo_teste.iloc[index-2]['clusters_final']) + offset_user}")
+                        id_t1 = estado_para_id.get(f"u{int(dialogo_teste.iloc[index-1]['clusters_final']) + offset_user}")
+                        janela = [id_t2 if id_t2 else -1, id_t1 if id_t1 else -1, id_estado_modelo]
+                    elif index == 1:
+                        id_t1 = estado_para_id.get(f"u{int(dialogo_teste.iloc[index-1]['clusters_final']) + offset_user}")
+                        janela = [-1, id_t1 if id_t1 else -1, id_estado_modelo]
+
+                    with torch.no_grad():
+                        log_probs = modelo(janela)
+                        probabilidades = torch.exp(log_probs)
+                        # Ordeno todas as probabilidades da maior para a menor
+                        probs_ordenadas, ids_ordenados = torch.sort(probabilidades, descending=True)
+                        
+                        estado_sugerido_codigo = "EOD"
+                        # Tenho q aplicar um filtro aqui ou seja escolhe a probabilidade mais alta que seja do SISTEMA ou EOD
+                        for idx in ids_ordenados:
+                            codigo_candidato = id_para_estado[idx.item()]
+                            if codigo_candidato.startswith('s') or codigo_candidato == 'EOD':
+                                estado_sugerido_codigo = codigo_candidato
+                                break
+                
+                # É isto que converte o código (ex: 's5') para o texto que o LLM vai ler
+                diretriz_estrategica = inv.get(estado_sugerido_codigo, "Esclarecer a dúvida do cliente")
+                if estado_sugerido_codigo == 'EOD': 
+                    topico = "Terminar a conversa educadamente e resolver o problema."
+                else:
+                    topico = diretriz_estrategica.replace("[SYSTEM]", "").strip()
+
+                # --- LLM LIVRE ---
+                prompt_livre = f"""Tu és um assistente virtual de apoio ao cliente.
+O cliente disse isto:
+"{msg_user}"
+
+Escreve uma resposta de forma natural e concisa em Português de Portugal para ajudar o cliente."""
+                resposta_livre = llm_chat.invoke(prompt_livre).strip()
+                
+                # --- LLM GUIADO (FLOWDISCO COM FEW-SHOT) ---
+                # Vai buscar exemplos para reduzir a ambiguidade da label
+                id_original_sistema = int(estado_sugerido_codigo.replace('s', '')) - offset_system if 's' in estado_sugerido_codigo else 0
+                exemplos = obter_exemplos_cluster(id_original_sistema)
+
+                prompt_guiada = f"""Tu és um assistente virtual de apoio ao cliente.
+O cliente disse isto:
+"{msg_user}"
+
+A tua resposta tem de focar-se e conduzir o cliente para a seguinte ação/tópico: "{topico}".{exemplos}
+
+Escreve uma resposta de forma natural e concisa em Português de Portugal para ajudar o cliente."""
+                resposta_guiada = llm_chat.invoke(prompt_guiada).strip()
+                
+                # --- LLM ALEATÓRIO  ---
+                # A rede escolhe um estado ao calhas do vocabulário
+                opcoes_validas = [id_val for cod, id_val in estado_para_id.items() if cod.startswith('s') or cod == 'EOD']
+                id_aleatorio = random.choice(opcoes_validas)
+                estado_sugerido_aleatorio = id_para_estado[id_aleatorio]
+                topico_aleatorio_label = inv.get(estado_sugerido_aleatorio, "Conversa genérica")
+                if estado_sugerido_aleatorio == 'EOD':
+                    topico_aleatorio = "Terminar a conversa educadamente e resolver o problema."
+                else:
+                    topico_aleatorio = topico_aleatorio_label.replace("[SYSTEM]", "").strip()
+
+                prompt_aleatorio = f"""Tu és um assistente virtual de apoio ao cliente.
+O cliente disse isto:
+"{msg_user}"
+
+A tua resposta tem de focar-se e conduzir o cliente para a seguinte ação/tópico: "{topico_aleatorio}".
+
+Escreve uma resposta de forma natural e concisa em Português de Portugal para ajudar o cliente."""
+                resposta_aleatoria = llm_chat.invoke(prompt_aleatorio).strip()
+                
+                # ====================================================
+                # AVALIAÇÃO
+                # ====================================================
+                cluster_livre_nome, cluster_guiado_nome, cluster_aleatorio_nome = "N/A", "N/A", "N/A"
+                sim_livre, sim_guiada, sim_aleat = 0.0, 0.0, 0.0
+                
+                if modelo_kmeans_system is not None and 'model_ml' in globals():
+                    try:
+                        # Extrair o centroide alvo
+                        centroide_alvo = modelo_kmeans_system.cluster_centers_[id_original_sistema]
+                        
+                        # --- Avaliar LLM Livre ---
+                        vec_livre = model_ml.encode([resposta_livre])
+                        id_livre = modelo_kmeans_system.predict(vec_livre)[0]
+                        codigo_livre = f"s{id_livre + offset_system}"
+                        cluster_livre_nome = inv.get(codigo_livre, f"Cluster {id_livre}")
+                        sim_livre = cosine_similarity(vec_livre, [centroide_alvo])[0][0]
+                        
+                        # --- Avaliar LLM Guiado ---
+                        vec_guiado = model_ml.encode([resposta_guiada])
+                        id_guiado = modelo_kmeans_system.predict(vec_guiado)[0]
+                        codigo_guiado = f"s{id_guiado + offset_system}"
+                        cluster_guiado_nome = inv.get(codigo_guiado, f"Cluster {id_guiado}")
+                        sim_guiada = cosine_similarity(vec_guiado, [centroide_alvo])[0][0]
+
+                        # --- Avaliar LLM Aleatório ---
+                        vec_aleat = model_ml.encode([resposta_aleatoria])
+                        id_aleat = modelo_kmeans_system.predict(vec_aleat)[0]
+                        codigo_aleat = f"s{id_aleat + offset_system}"
+                        cluster_aleatorio_nome = inv.get(codigo_aleat, f"Cluster {id_aleat}")
+                        sim_aleat = cosine_similarity(vec_aleat, [centroide_alvo])[0][0]
+                        
+                    except Exception as e:
+                        print(f"Erro na avaliação (KMeans ou Cosseno): {e}")
+
+                # Guardar os resultados completos
+                resultados_tese.append({
+                    'Dialogue_ID': diag_id,
+                    'Fala_do_Cliente': msg_user,
+                    
+                    'Acao_Alvo_GFlowNet': topico,
+                    
+                    'Resposta_LLM_Livre': resposta_livre,
+                    'Cluster_Previsto_Livre': cluster_livre_nome,
+                    'CosineSim_Livre': sim_livre,
+                    
+                    'Resposta_LLM_Guiado': resposta_guiada,
+                    'Cluster_Previsto_Guiado': cluster_guiado_nome,
+                    'CosineSim_Guiado': sim_guiada,
+                    
+                    'Acao_Alvo_Aleatoria': topico_aleatorio,
+                    'Resposta_LLM_Aleatorio': resposta_aleatoria,
+                    'Cluster_Previsto_Aleatorio': cluster_aleatorio_nome,
+                    'CosineSim_Aleatorio': sim_aleat
+                })
+                print(f"Processado Diálogo {diag_id}: '{msg_user[:20]}...'")
+
+    # Exportar
+    df_resultados = pd.DataFrame(resultados_tese)
+    caminho_excel = os.path.join('./Resultados', diretoria, 'Avaliacao_Final_Completa.xlsx')
+    df_resultados.to_excel(caminho_excel, index=False)
+    
+    print(f"\n Ficheiro de avaliação (com Baseline Aleatória e Cosine Sim) guardado em: {caminho_excel}\n")
+
+def calcular_metricas_tese(grafo_treinado):
+    print("\n" + "="*50)
+    
+    caminho_excel = os.path.join('./Resultados', diretoria, 'Avaliacao_Final_Completa.xlsx')
+    
+    if not os.path.exists(caminho_excel):
+        print(f"Erro: Não encontrei o ficheiro {caminho_excel}")
+        return
+        
+    df = pd.read_excel(caminho_excel)
+    total_interacoes = len(df)
+    total_dialogos = df['Dialogue_ID'].nunique()
+    
+    # ---------------------------------------------------------
+    # MÉTRICAS
+    # ---------------------------------------------------------
+    def limpar_texto(texto):
+        texto_limpo = str(texto).strip().lower()
+        texto_limpo = texto_limpo.replace("[system]", "").replace("[user]", "").strip()
+        return texto_limpo
+    
+    alvo_gflownet = df['Acao_Alvo_GFlowNet'].apply(limpar_texto)
+    alvo_aleatorio = df['Acao_Alvo_Aleatoria'].apply(limpar_texto)
+    
+    cluster_livre = df['Cluster_Previsto_Livre'].apply(limpar_texto)
+    cluster_guiado = df['Cluster_Previsto_Guiado'].apply(limpar_texto)
+    cluster_aleatorio = df['Cluster_Previsto_Aleatorio'].apply(limpar_texto)
+    
+    acertos_livre = (alvo_gflownet == cluster_livre).sum()
+    acertos_guiado = (alvo_gflownet == cluster_guiado).sum()
+    acertos_aleatorio = (alvo_aleatorio == cluster_aleatorio).sum()
+    
+    taxa_acerto_livre = (acertos_livre / total_interacoes) * 100
+    taxa_acerto_guiado = (acertos_guiado / total_interacoes) * 100
+    taxa_acerto_aleat = (acertos_aleatorio / total_interacoes) * 100
+    
+    cos_livre = df['CosineSim_Livre'].mean()
+    cos_guiado = df['CosineSim_Guiado'].mean()
+    cos_aleatorio = df['CosineSim_Aleatorio'].mean()
+    
+    # ---------------------------------------------------------
+    # FUNÇÕES AUXILIARES PARA PROGRESS RATE E EFFICIENCY
+    # ---------------------------------------------------------
+    nodos_do_grafo = list(grafo_treinado.nodes())
+
+    def formatar_no_grafo(nome_excel):
+        if pd.isna(nome_excel) or nome_excel == "N/A": return "N/A"
+        
+        # Limpa o nome do Excel
+        nome_limpo = str(nome_excel).replace("[SYSTEM]", "").replace("[USER]", "").strip().lower()
+        
+        # Procura o nó real no grafo que contenha este texto
+        for n in nodos_do_grafo:
+            n_str = str(n).lower()
+            if nome_limpo in n_str or n_str in nome_limpo:
+                return n # Devolve o nome exato como está no grafo
+                
+        # Se não encontrar, devolve uma formatação de tentativa
+        return str(nome_excel).replace("[SYSTEM] ", "SYSTEM -> ").replace("[USER] ", "USER -> ")
+
+    def calcular_progress_rate(path_gerado, path_ideal):
+        dp = np.zeros((len(path_gerado)+1, len(path_ideal)+1), dtype=int)
+        for i in range(1, len(path_gerado)+1):
+            for j in range(1, len(path_ideal)+1):
+                if str(path_gerado[i-1]) == str(path_ideal[j-1]):
+                    dp[i][j] = dp[i-1][j-1] + 1
+                else:
+                    dp[i][j] = max(dp[i-1][j], dp[i][j-1])
+        return dp[-1][-1] / len(path_ideal)
+
+    def calcular_efficiency(path, grafo):
+        if len(path) <= 1: return 0.0
+        transicoes_legais = 0
+        for i in range(len(path)-1):
+            origem = str(path[i]).split('(')[0].strip()
+            destino = str(path[i+1]).split('(')[0].strip()
+            if grafo.has_edge(origem, destino):
+                transicoes_legais += 1
+        return transicoes_legais / (len(path) - 1)
+
+    # ---------------------------------------------------------
+    # EXTRAIR TRAJETÓRIAS E CALCULAR TODAS AS MÉTRICAS
+    # ---------------------------------------------------------
+    caminhos_livre, caminhos_guiado, caminhos_aleatorio = [], [], []
+    prog_l_list, prog_g_list, prog_a_list = [], [], []
+    eff_l_list, eff_g_list, eff_a_list = [], [], []
+    
+    # Sentimentos do Grafo
+    node_sentiments = {}
+    for node, attrs in grafo_treinado.nodes(data=True):
+        try:
+            node_sentiments[str(node).split('(')[0].strip()] = float(attrs.get('sentiment', 0.5))
+        except:
+            node_sentiments[str(node).split('(')[0].strip()] = 0.5
+
+    delta_l_list, delta_g_list, delta_a_list = [], [], []
+    final_l_list, final_g_list, final_a_list = [], [], []
+    
+    for diag_id, group in df.groupby('Dialogue_ID'):
+        path_oracle = ["SOD"] + group['Acao_Alvo_GFlowNet'].apply(formatar_no_grafo).tolist() + ["EOD"]
+        path_l = ["SOD"] + group['Cluster_Previsto_Livre'].apply(formatar_no_grafo).tolist() + ["EOD"]
+        path_g = ["SOD"] + group['Cluster_Previsto_Guiado'].apply(formatar_no_grafo).tolist() + ["EOD"]
+        path_a = ["SOD"] + group['Cluster_Previsto_Aleatorio'].apply(formatar_no_grafo).tolist() + ["EOD"]
+        
+        caminhos_livre.append(path_l)
+        caminhos_guiado.append(path_g)
+        caminhos_aleatorio.append(path_a)
+        
+        prog_l_list.append(calcular_progress_rate(path_l, path_oracle))
+        prog_g_list.append(calcular_progress_rate(path_g, path_oracle))
+        prog_a_list.append(calcular_progress_rate(path_a, path_oracle))
+        
+        eff_l_list.append(calcular_efficiency(path_l, grafo_treinado))
+        eff_g_list.append(calcular_efficiency(path_g, grafo_treinado))
+        eff_a_list.append(calcular_efficiency(path_a, grafo_treinado))
+        
+        def obter_sentimento_final_caminho(path):
+            if len(path) > 2:
+                ultimo_no_real = path[-2].split('(')[0].strip()
+                return node_sentiments.get(ultimo_no_real, 0.5)
+            return 0.5
+            
+        sent_inicio_oracle = node_sentiments.get(path_oracle[1].split('(')[0].strip(), 0.5) if len(path_oracle) > 2 else 0.5
+        
+        final_l = obter_sentimento_final_caminho(path_l)
+        final_g = obter_sentimento_final_caminho(path_g)
+        final_a = obter_sentimento_final_caminho(path_a)
+        
+        final_l_list.append(final_l)
+        final_g_list.append(final_g)
+        final_a_list.append(final_a)
+        
+        delta_l_list.append(final_l - sent_inicio_oracle)
+        delta_g_list.append(final_g - sent_inicio_oracle)
+        delta_a_list.append(final_a - sent_inicio_oracle)
+
+
+    def calcular_ff1_local(test_paths):
+        # Normalized Complexity (nc)
+        # O 'nc' é o tamanho do grafo a dividir pelo total de interações possíveis.
+        # Para que não dê > 1 num teste pequeno, uso o max
+        num_nos_grafo = len(grafo_treinado.nodes)
+        nc = num_nos_grafo / max(num_nos_grafo, total_interacoes) 
+        if nc > 1.0: nc = 1.0
+        
+        # Normalized FuDGE (nf)
+        avg_dialogue_length = total_interacoes / total_dialogos if total_dialogos > 0 else 1
+        raw_fudge = calcular_nf_iterativo(grafo_treinado, test_paths, avg_dialogue_length)
+        if raw_fudge is None: raw_fudge = avg_dialogue_length
+        
+        nf = raw_fudge / avg_dialogue_length if avg_dialogue_length > 0 else 1.0
+        if nf > 1.0: nf = 1.0
+        
+        # Flow-F1 Score
+        denominador = (1 - nc) + (1 - nf)
+        
+        if denominador == 0:
+            return 0.0
+            
+        ff1 = (2 * (1 - nc) * (1 - nf)) / denominador
+        return ff1
+
+    ff1_livre = calcular_ff1_local(caminhos_livre)
+    ff1_guiado = calcular_ff1_local(caminhos_guiado)
+    ff1_aleatorio = calcular_ff1_local(caminhos_aleatorio)
+    
+
+    print(f"Total de Interações: {total_interacoes} | Total Diálogos: {total_dialogos}\n")
+    
+    print("LLM ALEATÓRIO:")
+    print(f"   -> Taxa de Sucesso (K-Means): {taxa_acerto_aleat:.2f}%")
+    print(f"   -> Cosine Similarity:         {cos_aleatorio:.4f}")
+    print(f"   -> Flow F1-Score:             {ff1_aleatorio:.4f}")
+    print(f"   -> Progress Rate (Ma et al.): {np.mean(prog_a_list):.4f}")
+    print(f"   -> Process Efficiency(TRACE): {np.mean(eff_a_list):.4f}")
+    print(f"   -> Sentiment Delta:          {np.mean(delta_a_list):+.4f}")
+    print(f"   -> Task Success Rate (Sent.): {np.mean(final_a_list):.4f}\n")
+    
+    print("LLM LIVRE:")
+    print(f"   -> Taxa de Sucesso (K-Means): {taxa_acerto_livre:.2f}%")
+    print(f"   -> Cosine Similarity:         {cos_livre:.4f}")
+    print(f"   -> Flow F1-Score:             {ff1_livre:.4f}")
+    print(f"   -> Progress Rate (Ma et al.): {np.mean(prog_l_list):.4f}")
+    print(f"   -> Process Efficiency(TRACE): {np.mean(eff_l_list):.4f}")
+    print(f"   -> Sentiment Delta:          {np.mean(delta_l_list):+.4f}")
+    print(f"   -> Task Success Rate (Sent.): {np.mean(final_l_list):.4f}\n")
+    
+    print("LLM Guiado:")
+    print(f"   -> Taxa de Sucesso (K-Means): {taxa_acerto_guiado:.2f}%")
+    print(f"   -> Cosine Similarity:         {cos_guiado:.4f}")
+    print(f"   -> Flow F1-Score:             {ff1_guiado:.4f}")
+    print(f"   -> Progress Rate (Ma et al.): {np.mean(prog_g_list):.4f}")
+    print(f"   -> Process Efficiency(TRACE): {np.mean(eff_g_list):.4f}")
+    print(f"   -> Sentiment Delta:          {np.mean(delta_g_list):+.4f}")
+    print(f"   -> Task Success Rate (Sent.): {np.mean(final_g_list):.4f}\n")
+    
+
+    print(f"- Melhoria Semântica (Cosine) face ao Livre:     +{(cos_guiado - cos_livre):.4f}")
+    #print(f"- Melhoria na Harmonia (FF1) face ao Livre:      +{(ff1_guiado - ff1_livre):.4f}")
+    print(f"- Melhoria no Progresso face ao Livre: +{(np.mean(prog_g_list) - np.mean(prog_l_list)):.4f}")
+    print(f"- Melhoria na Eficiência face ao Livre:  +{(np.mean(eff_g_list) - np.mean(eff_l_list)):.4f}")
+    print(f"- Melhoria no Sentimento Final do Cliente:       +{(np.mean(final_g_list) - np.mean(final_l_list)):.4f}")
+    print("-" * 55)
+
+if RUN_GFLOWNET:
+    flowdisco_teste_ab_com_metricas()
+    calcular_metricas_tese(result)
+else:
+    #flowdisco_teste_ab_com_metricas()
+    print("Treino GFlowNet e métricas extra ignorados.")
+
+
+# INÍCIO DO SERVIDOR FLASK
 print("\nO servidor Flask está a iniciar na porta 5051...")
 try:
     app.run(host='0.0.0.0', port=5051, debug=False, use_reloader=False)
